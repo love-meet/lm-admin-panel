@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  /* Base Colors */
+  --color-bg-primary: #121212;
+  --color-bg-secondary: #1E1E1E;
+  --color-bg-tertiary: #2A2A2A;
+
+  /* Text Colors */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A0A0A0;
+  --color-text-muted: #6B6B6B;
+
+  /* Accent Colors */
+  --color-primary-purple: #8A2BE2;
+  --color-accent-pink: #EC4899;
+  --color-primary-cyan: #22D3EE;
+  --color-accent-green: #2ED573;
+  --color-accent-yellow: #F59E0B;
+  --color-accent-red: #EF4444;
+}
+
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: 'Nunito', sans-serif; /* Ensure you import Nunito or another font */
+}
+
