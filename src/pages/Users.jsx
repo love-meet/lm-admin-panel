@@ -56,13 +56,20 @@ export default function Users() {
     const first = u.firstName || u.first || '';
     const last = u.lastName || u.lastName || u.last || '';
     const fullName = `${first} ${last}`.trim() || username;
+    // normalize subscriptionPlan to a string (backend may return an object)
+    let plan = u.subscriptionPlan ?? 'Free';
+    if (plan && typeof plan === 'object') {
+      plan = plan.planName || plan.name || String(plan) || 'Free';
+    }
+    if (!plan) plan = 'Free';
+
     return {
       id,
       username,
       profilePic: u.picture || u.profilePic || '',
       fullName,
       email: u.email || '',
-      subscriptionPlan: u.subscriptionPlan || 'Free',
+      subscriptionPlan: plan,
       balance: typeof u.balance !== 'undefined' ? u.balance : (u.rawBalance || 0),
       isDisabled: u.isDisabled || false,
       verified: u.verified || false,
