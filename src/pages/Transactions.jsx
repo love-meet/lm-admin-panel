@@ -4,12 +4,7 @@ import { toast } from 'sonner';
 import { FiSearch, FiEye } from 'react-icons/fi';
 
 const Transactions = () => {
-  const [transactions, setTransactions] = useState([
-    { id: 'TXN-1001', user: 'jane_doe', amount: 49.99, type: 'Credit', status: 'Completed', date: '2025-09-23T14:11:00Z', details: 'Plan upgrade to Pro' },
-    { id: 'TXN-1002', user: 'john_smith', amount: 14.99, type: 'Debit', status: 'Pending', date: '2025-09-24T09:25:00Z', details: 'Monthly subscription' },
-    { id: 'TXN-1003', user: 'alice', amount: 9.99, type: 'Credit', status: 'Failed', date: '2025-09-24T10:45:00Z', details: 'Add-on purchase' },
-    { id: 'TXN-1004', user: 'bob', amount: 120.0, type: 'Credit', status: 'Completed', date: '2025-09-22T18:05:00Z', details: 'Annual subscription' },
-  ]);
+  const [transactions, setTransactions] = useState([]);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
 
@@ -18,12 +13,22 @@ const Transactions = () => {
       try {
         const res = await adminApi.getTransactions();
         console.log('[transactions] getTransactions raw', res);
-        // normalize response: array, res.data, res.data.data
         let list = [];
         if (Array.isArray(res)) list = res;
         else if (Array.isArray(res?.data)) list = res.data;
         else if (Array.isArray(res?.data?.data)) list = res.data.data;
-        if (list.length) setTransactions(list);
+        // map server transaction objects to UI shape
+        const mapped = list.map((t) => ({
+          id: t._id || t.id || t.transactionId || t.txnId || t.reference || '',
+          user: t.user || t.username || t.email || t.userId || (t.userObj && (t.userObj.username || t.userObj.email)) || '',
+          amount: Number(t.balance ?? t.amount ?? t.value ?? 0),
+          type: t.type || (t.transactionType || ''),
+          status: t.status || t.state || '',
+          date: t.date || t.createdAt || t.timestamp || t.createdAtString || '',
+          details: t.name || t.details || t.description || '',
+          raw: t,
+        }));
+        if (mapped.length) setTransactions(mapped);
       } catch (e) {
         console.error('[transactions] load error', e);
       }

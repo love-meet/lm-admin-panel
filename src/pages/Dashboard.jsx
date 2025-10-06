@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { getDashboardSummary } from '../api/admin';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,87 +19,179 @@ ChartJS.register(
   PointElement,
   LineElement,
   BarElement,
-  Title,
   Tooltip,
   Legend
 );
 
 const Dashboard = () => {
-  // User Growth Over Time Data (Line Chart)
+  const [summary, setSummary] = useState({
+    data: {
+      totalUsers: 0,
+      postsToday: 0,
+      totalRevenue: 0,
+      newSignups: 0
+    }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await getDashboardSummary();
+        console.log('Dashboard summary data:', response);
+        
+        // FIXED: Access data directly from response.data
+        if (response && response.data) {
+          const dashboardData = response.data || {
+            totalUsers: 0,
+            postsToday: 0,
+            totalRevenue: 0,
+            newSignups: 0
+          };
+          
+          setSummary({
+            data: dashboardData
+          });
+        } else {
+          console.warn('Empty response from getDashboardSummary');
+          setSummary({
+            data: {
+              totalUsers: 0,
+              postsToday: 0,
+              totalRevenue: 0,
+              newSignups: 0
+            }
+          });
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError('Failed to load dashboard data: ' + (err.message || 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Updated user growth data with all months
   const userGrowthData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
       {
         label: 'New Users',
-        data: [120, 190, 180, 210, 156, 175, 200],
+        data: [65, 59, 80, 81, 56, 55, 40, 75, 82, 90, 95, 110],
         borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        borderWidth: 2,
-        tension: 0.4,
-        fill: true,
-        pointBackgroundColor: 'rgb(59, 130, 246)',
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        tension: 0.3,
       },
     ],
   };
 
-  // Revenue by Subscription Plan Data (Bar Chart)
-  // Revenue by Subscription Plan Data (Bar Chart)
-const revenueByPlanData = {
-  labels: [
-    'Free',
-    'Sprout',
-    'Seedling',
-    'Blossom',
-    'Orchard',
-    'Oasis',
-    'Paradise',
-    'Utopia',
-    'Nirvana'
-  ],
-  datasets: [
-    {
-      label: 'Monthly Revenue ($)',
-      data: [500, 1500, 2500, 4000, 6000, 8500, 12000, 16000, 20000],
-      backgroundColor: [
-        'rgba(99, 102, 241, 0.7)',   // Free
-        'rgba(59, 130, 246, 0.7)',   // Sprout
-        'rgba(16, 185, 129, 0.7)',   // Seedling
-        'rgba(139, 92, 246, 0.7)',   // Blossom
-        'rgba(245, 158, 11, 0.7)',   // Orchard
-        'rgba(236, 72, 153, 0.7)',   // Oasis
-        'rgba(34, 197, 94, 0.7)',    // Paradise
-        'rgba(251, 191, 36, 0.7)',   // Utopia
-        'rgba(168, 85, 247, 0.7)',   // Nirvana
-      ],
-      borderColor: [
-        'rgba(99, 102, 241, 1)',
-        'rgba(59, 130, 246, 1)',
-        'rgba(16, 185, 129, 1)',
-        'rgba(139, 92, 246, 1)',
-        'rgba(245, 158, 11, 1)',
-        'rgba(236, 72, 153, 1)',
-        'rgba(34, 197, 94, 1)',
-        'rgba(251, 191, 36, 1)',
-        'rgba(168, 85, 247, 1)',
-      ],
-      borderWidth: 1,
-      borderRadius: 4,
-    },
-  ],
-};
-
-
-  const stats = useMemo(
-    () => [
-      { title: 'Total Users', value: '12,847', color: 'from-blue-500 to-blue-600', icon: '👥' },
-      { title: 'Total Posts Today', value: '542', color: 'from-green-500 to-green-600', icon: '📝' },
-      { title: 'Total Revenue', value: '$45,230', color: 'from-yellow-500 to-yellow-600', icon: '💰' },
-      { title: 'New Sign-ups', value: '89', color: 'from-purple-500 to-purple-600', icon: '✨' },
+  // Updated revenue data with all subscription plans
+  const revenueByPlanData = {
+    labels: ['Free', 'Orbit', 'Starlight', 'Nova', 'Equinox', 'Polaris', 'Orion', 'Cosmos'],
+    datasets: [
+      {
+        label: 'Monthly Revenue ($)',
+        data: [0, 250, 500, 1000, 2000, 3500, 6500, 10000],
+        backgroundColor: [
+          'rgba(156, 163, 175, 0.7)',    // Free - gray
+          'rgba(99, 102, 241, 0.7)',     // Orbit - indigo
+          'rgba(59, 130, 246, 0.7)',     // Starlight - blue
+          'rgba(16, 185, 129, 0.7)',     // Nova - green (recommended)
+          'rgba(245, 158, 11, 0.7)',     // Equinox - amber
+          'rgba(139, 92, 246, 0.7)',     // Polaris - purple
+          'rgba(236, 72, 153, 0.7)',     // Orion - pink
+          'rgba(239, 68, 68, 0.7)',      // Cosmos - red
+        ],
+        borderColor: [
+          'rgba(156, 163, 175, 1)',
+          'rgba(99, 102, 241, 1)',
+          'rgba(59, 130, 246, 1)',
+          'rgba(16, 185, 129, 1)',
+          'rgba(245, 158, 11, 1)',
+          'rgba(139, 92, 246, 1)',
+          'rgba(236, 72, 153, 1)',
+          'rgba(239, 68, 68, 1)',
+        ],
+        borderWidth: 1,
+        borderRadius: 4,
+      },
     ],
-    []
-  );
+  };
+
+  const stats = useMemo(() => {
+    console.log('Current summary state:', summary);
+    
+    // Safely access the data
+    const data = summary.data || {
+      totalUsers: 0,
+      postsToday: 0,
+      totalRevenue: 0,
+      newSignups: 0
+    };
+    
+    return [
+      { 
+        title: 'Total Users', 
+        value: loading ? 'Loading...' : (data.totalUsers || 0).toLocaleString(), 
+        color: 'from-blue-500 to-blue-600', 
+        icon: '👥' 
+      },
+      { 
+        title: 'Total Posts Today', 
+        value: loading ? 'Loading...' : (data.postsToday || 0).toLocaleString(), 
+        color: 'from-green-500 to-green-600', 
+        icon: '📝' 
+      },
+      { 
+        title: 'Total Revenue', 
+        value: loading ? 'Loading...' : `$${(data.totalRevenue || 0).toFixed(2)}`, 
+        color: 'from-yellow-500 to-yellow-600', 
+        icon: '💰' 
+      },
+      { 
+        title: 'New Sign-ups', 
+        value: loading ? 'Loading...' : (data.newSignups || 0).toLocaleString(), 
+        color: 'from-purple-500 to-purple-600', 
+        icon: '✨' 
+      },
+    ];
+  }, [summary, loading]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg-primary)]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-[var(--color-text-secondary)]">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg-primary)]">
+        <div className="text-center p-6 max-w-md">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h3 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">Error Loading Dashboard</h3>
+          <p className="text-[var(--color-text-secondary)] mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 bg-[var(--color-bg-primary)] min-h-screen">
@@ -143,16 +236,16 @@ const revenueByPlanData = {
                   maintainAspectRatio: false,
                   plugins: {
                     legend: {
-                      labels: { color: 'var(--color-text-primary)' },
+                      labels: { color: '#ffffff' },
                     },
                   },
                   scales: {
                     x: {
-                      ticks: { color: '#fff' },
+                      ticks: { color: '#ffffff' },
                       grid: { color: 'rgba(255, 255, 255, 0.05)' },
                     },
                     y: {
-                      ticks: { color: '#fff' },
+                      ticks: { color: '#ffffff' },
                       grid: { color: 'rgba(255, 255, 255, 0.05)' },
                     },
                   },
@@ -179,12 +272,16 @@ const revenueByPlanData = {
                   },
                   scales: {
                     x: {
-                      ticks: { color: '#fff' },
+                      ticks: { 
+                        color: '#ffffff',
+                        maxRotation: 45,
+                        minRotation: 45
+                      },
                       grid: { color: 'rgba(255, 255, 255, 0.05)' },
                     },
                     y: {
                       ticks: {
-                        color: '#fff',
+                        color: '#ffffff',
                         callback: (value) => `$${value.toLocaleString()}`,
                       },
                       grid: { color: 'rgba(255, 255, 255, 0.05)' },

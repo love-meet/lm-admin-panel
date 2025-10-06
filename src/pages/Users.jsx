@@ -1,47 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { FiEye, FiEdit2, FiSlash, FiTrash2, FiLock, FiCheck, FiMoreVertical } from 'react-icons/fi';
+import { FiEye, FiEdit2, FiSlash, FiTrash2, FiLock, FiCheck, FiMoreVertical, FiUser, FiCopy } from 'react-icons/fi';
 import Modal from '../components/Modal';
+import UserModal from '../components/UserModal';
 import adminApi from '../api/admin';
 import { toast } from 'sonner';
 
-// Local mock fallback (used only before data loads)
-const mockUsers = [
-  {
-    id: 'USR001',
-    profilePic: 'https://i.pravatar.cc/150?img=1',
-    fullName: 'Alice Johnson',
-    email: 'alice.j@example.com',
-    subscriptionPlan: 'Premium',
-    dateJoined: '2023-01-15',
-    isDisabled: false,
-    verified: true
-  },
-  {
-    id: 'USR002',
-    profilePic: 'https://i.pravatar.cc/150?img=2',
-    fullName: 'Bob Smith',
-    email: 'bob.s@example.com',
-    subscriptionPlan: 'Basic',
-    dateJoined: '2023-02-20',
-    isDisabled: true,
-    verified: false
-  },
-  {
-    id: 'USR003',
-    profilePic: 'https://i.pravatar.cc/150?img=3',
-    fullName: 'Charlie Brown',
-    email: 'charlie.b@example.com',
-    subscriptionPlan: 'Premium',
-    dateJoined: '2023-03-10',
-    isDisabled: false,
-    verified: true
-  },
-];
+
 
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState('');
-  const [viewUser, setViewUser] = useState(null);
+  // viewUser is now handled via URL query param in UserModal
   const [editUser, setEditUser] = useState(null);
   const [confirm, setConfirm] = useState(null); // { type: 'suspend'|'delete'|'enable'|'verify', user }
   const [loading, setLoading] = useState(false);
@@ -63,6 +32,9 @@ export default function Users() {
     }
     if (!plan) plan = 'Free';
 
+    // normalize verification flags from multiple backend shapes
+    const verifiedFlag = u.verified ?? u.isVerified ?? u.profileVerification ?? false;
+
     return {
       id,
       username,
@@ -72,7 +44,7 @@ export default function Users() {
       subscriptionPlan: plan,
       balance: typeof u.balance !== 'undefined' ? u.balance : (u.rawBalance || 0),
       isDisabled: u.isDisabled || false,
-      verified: u.verified || false,
+      verified: !!verifiedFlag,
       dateJoined: u.dateJoined ? new Date(u.dateJoined).toLocaleDateString() : (u.dateJoinedString || ''),
       raw: u,
     };
@@ -89,11 +61,31 @@ export default function Users() {
     return s.length > len ? s.slice(0, len) + '...' : s;
   };
 
+  const copyId = async (id) => {
+    if (!id) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(id);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = id;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      toast.success('ID copied to clipboard');
+    } catch (e) {
+      console.error('copy failed', e);
+      toast.error('Failed to copy ID');
+    }
+  };
+
   const formatBalance = (u) => {
     const raw = u?.raw || u;
     const val = Number(raw?.balance ?? u?.balance ?? 0) || 0;
     const isNigeria = raw?.country === 'Nigeria';
-    const symbol = isNigeria ? '₦' : '$';
+    const symbol =  '$';
     return `${symbol}${new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val)}`;
   };
 
@@ -135,6 +127,21 @@ export default function Users() {
     load();
   }, []);
 
+  useEffect(() => {
+    const onUpdated = (e) => {
+      const updated = e?.detail;
+      if (!updated) return;
+      try {
+        const shaped = toShape(updated);
+        applyUpdate(shaped);
+      } catch (err) {
+        console.error('failed to apply user-updated event', err);
+      }
+    };
+    window.addEventListener('admin:user-updated', onUpdated);
+    return () => window.removeEventListener('admin:user-updated', onUpdated);
+  }, []);
+
   const suspendUser = async (user) => {
     setActionLoading(true);
     try {
@@ -156,21 +163,22 @@ export default function Users() {
   };
 
   const handleView = async (user) => {
-    setActionLoading(true);
+    // open modal by pushing ?user=<id> so it survives refresh/navigation
     try {
-      const res = await adminApi.getUserById(user.id);
-      let details = null;
-      if (!res) details = user;
-      else if (res?.user) details = res.user;
-      else if (res?.data) details = res.data;
-      else details = res;
-      // map to shape for modal too
-      setViewUser(toShape(details) || toShape(user));
-    } catch (err) {
-      console.error('[users] view error', err);
-      setViewUser(user);
-    } finally {
-      setActionLoading(false);
+      const url = new URL(window.location.href);
+      url.searchParams.set('user', user.id);
+      console.debug('[Users] open modal url ->', url.toString(), 'userId ->', user.id);
+      // pushState doesn't fire popstate; fire one so UserModal's popstate listener updates immediately
+      window.history.pushState({}, '', url.toString());
+      try {
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      } catch (e) {
+        // older browsers: fallback to a custom event
+        window.dispatchEvent(new Event('popstate'));
+      }
+      console.debug('[Users] pushState + popstate dispatched');
+    } catch (e) {
+      console.error('failed to open user modal via url', e);
     }
   };
 
@@ -226,6 +234,32 @@ export default function Users() {
     }
   };
 
+  const unverifyUserHandler = async (user) => {
+    setActionLoading(true);
+    try {
+      const res = await adminApi.unverifyUser(user.id);
+      const updated = res?.user || res?.data || res?.updatedUser || res;
+      if (updated) {
+        applyUpdate(toShape(updated));
+      } else {
+        applyUpdate({ id: user.id, verified: false });
+      }
+      toast.success('User unverified');
+    } catch (err) {
+      console.error('[users] unverify error', err);
+      toast.error('Failed to unverify user');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // expose a temporary global for the menu button to call (keeps inline JSX smaller)
+  // and remove on unmount
+  useEffect(() => {
+    window.__unverifyTemp = unverifyUserHandler;
+    return () => { try { delete window.__unverifyTemp; } catch {} };
+  }, []);
+
   return (
     <div className="p-8 bg-[var(--color-bg-primary)] min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-[var(--color-text-primary)]">User Management</h2>
@@ -279,11 +313,31 @@ export default function Users() {
               })
               .map((user) => (
               <tr key={user.id} className="hover:bg-[var(--color-bg-tertiary)] transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-primary)]">{truncateMiddle(user.id)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-primary)]">
+                  <div className="flex items-center gap-2">
+                    <div className="font-mono">{truncateMiddle(user.id)}</div>
+                    <button onClick={() => copyId(user.id)} title="Copy ID" className="p-1 rounded hover:bg-[var(--color-bg-tertiary)]">
+                      <FiCopy className="w-4 h-4 text-[var(--color-text-secondary)]" />
+                    </button>
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <img className="h-10 w-10 rounded-full" src={user.profilePic} alt="" />
-                    <div className="ml-4 text-sm font-medium text-[var(--color-text-primary)]">{truncateRight(user.username || user.fullName)}</div>
+                    {user.profilePic ? (
+                      <img className="h-10 w-10 rounded-full object-cover" src={user.profilePic} alt="" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center text-[var(--color-text-secondary)]">
+                        <FiUser className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="ml-4 text-sm font-medium text-[var(--color-text-primary)] flex items-center gap-2">
+                      <span>{truncateRight(user.username || user.fullName)}</span>
+                      {user.verified && (
+                        <span title="Verified" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white">
+                          <FiCheck className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-secondary)]">{user.email}</td>
@@ -301,13 +355,9 @@ export default function Users() {
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-600 text-white">
                       Suspended
                     </span>
-                  ) : user.verified ? (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-600 text-white">
-                      Verified
-                    </span>
                   ) : (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-500 text-white">
-                      Pending
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-600 text-white">
+                      Active
                     </span>
                   )}
                 </td>
@@ -348,6 +398,12 @@ export default function Users() {
                             >
                               <FiCheck className="w-4 h-4 text-green-500" /> Verify User
                             </button>
+                            <button 
+                              onClick={() => { /* unverify */ window.__unverifyTemp && window.__unverifyTemp(user); setOpenMenuId(null); }} 
+                              className="block w-full text-left px-4 py-3 text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)] flex items-center gap-2 transition-colors"
+                            >
+                              <FiLock className="w-4 h-4 text-yellow-500" /> Unverify User
+                            </button>
                           </>
                         ) : (
                           <button 
@@ -372,66 +428,8 @@ export default function Users() {
           </tbody>
         </table>
       </div>
-      {/* View Modal */}
-      <Modal isOpen={!!viewUser} onClose={() => setViewUser(null)} title={viewUser ? `User Profile • ${viewUser.fullName}` : ''} size="lg" footer={<button onClick={() => setViewUser(null)} className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] hover:opacity-90">Close</button>}>
-        {viewUser && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <img src={viewUser.profilePic} alt="" className="h-12 w-12 rounded-full" />
-                <div>
-                  <div className="text-[var(--color-text-primary)] font-semibold">{viewUser.fullName}</div>
-                  <div className="text-[var(--color-text-secondary)] text-sm">{viewUser.email}</div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-[var(--color-text-secondary)]">Balance</div>
-                <div className="text-[var(--color-text-primary)] font-semibold">{formatBalance(viewUser)}</div>
-              </div>
-            </div>
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                <div className="text-xs text-[var(--color-text-secondary)]">User ID</div>
-                <div className="text-[var(--color-text-primary)]">{viewUser.id}</div>
-              </div>
-              <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                <div className="text-xs text-[var(--color-text-secondary)]">Plan</div>
-                <div className="text-[var(--color-text-primary)]">{viewUser.subscriptionPlan}</div>
-              </div>
-              <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                <div className="text-xs text-[var(--color-text-secondary)]">Status</div>
-                <div className="text-[var(--color-text-primary)]">
-                  {viewUser.isDisabled ? 'Suspended' : viewUser.verified ? 'Verified' : 'Pending'}
-                </div>
-              </div>
-              <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                <div className="text-xs text-[var(--color-text-secondary)]">Date Joined</div>
-                <div className="text-[var(--color-text-primary)]">{viewUser.dateJoined}</div>
-              </div>
-              <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                <div className="text-xs text-[var(--color-text-secondary)]">Verified</div>
-                <div className="text-[var(--color-text-primary)]">{viewUser.verified ? 'Yes' : 'No'}</div>
-              </div>
-              <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                <div className="text-xs text-[var(--color-text-secondary)]">Active</div>
-                <div className="text-[var(--color-text-primary)]">{viewUser.isDisabled ? 'No' : 'Yes'}</div>
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-semibold mb-2">Recent Posts</div>
-              <div className="rounded-lg border border-[var(--color-bg-tertiary)] divide-y divide-[var(--color-bg-tertiary)]">
-                <div className="p-3 text-[var(--color-text-secondary)]">No posts loaded (mock).</div>
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-semibold mb-2">Recent Transactions</div>
-              <div className="rounded-lg border border-[var(--color-bg-tertiary)] divide-y divide-[var(--color-bg-tertiary)]">
-                <div className="p-3 text-[var(--color-text-secondary)]">No transactions loaded (mock).</div>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {/* User modal is now a separate component which reads ?user=<id> from the URL */}
+      <UserModal />
 
       {/* Edit Modal */}
       <Modal
@@ -477,9 +475,9 @@ export default function Users() {
             </div>
             <div>
               <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Verified Status</label>
-              <select name="verified" defaultValue={editUser.verified.toString()} className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select name="verified" defaultValue={editUser.verified.toString()} className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="true">Verified</option>
-                <option value="false">Pending</option>
+                <option value="false">Active</option>
               </select>
             </div>
           </form>

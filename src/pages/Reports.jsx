@@ -184,7 +184,7 @@ const Reports = () => {
                 </div>
                 <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
                   <div className="text-xs text-[var(--color-text-secondary)]">Status</div>
-                  <div className="text-[var(--color-text-primary)]">{selectedUser?.isDisabled ? 'Suspended' : selectedUser?.verified ? 'Verified' : 'Pending'}</div>
+                  <div className="text-[var(--color-text-primary)]">{selectedUser?.isDisabled ? 'Suspended' : selectedUser?.verified ? 'Verified' : 'Active'}</div>
                 </div>
                 <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
                   <div className="text-xs text-[var(--color-text-secondary)]">Balance</div>

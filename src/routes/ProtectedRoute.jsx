@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function ProtectedRoute({ children }) {
   const { admin } = useAuth(); 
+  try { console.debug('[ProtectedRoute] admin state:', admin); } catch {}
   if (!admin) {
     return <Navigate to="/login" replace />;
   }

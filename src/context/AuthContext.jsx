@@ -13,7 +13,17 @@ import adminApi from '../api/admin';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [admin, setAdmin] = useState(null);
+  const [admin, setAdmin] = useState(() => {
+    try {
+      const raw = getCookieUtil('Admin') || 'null';
+      try { console.debug('[auth] cookie Admin raw:', raw); } catch {};
+      const parsed = JSON.parse(raw);
+      try { console.debug('[auth] cookie Admin parsed:', parsed); } catch {};
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  });
 
   const [notifications, setNotifications] = useState(0);
   const [notificationsList, setNotificationsList] = useState([]);
@@ -28,6 +38,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch {}
   }, [admin]);
+
+  // (hydration handled synchronously in useState initialiser)
 
   // Fetch notifications once on mount
   useEffect(() => {
@@ -96,6 +108,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // explicit logout: remove token and Admin cookie and clear state
+    removeCookieUtil('token');
+    removeCookieUtil('Admin');
     setAdmin(null);
   };
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiEye, FiEdit2, FiSlash, FiTrash2 } from 'react-icons/fi';
+import { FiEye, FiEdit2, FiSlash, FiTrash2, FiUser } from 'react-icons/fi';
 import Modal from '../components/Modal';
 
 // Mock data for users (copied from existing Users.jsx)
@@ -84,7 +84,13 @@ export default function UsersNew() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-primary)]">{user.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <img className="h-10 w-10 rounded-full" src={user.profilePic} alt="" />
+                    {user.profilePic ? (
+                      <img className="h-10 w-10 rounded-full object-cover" src={user.profilePic} alt="" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center text-[var(--color-text-secondary)]">
+                        <FiUser className="w-5 h-5" />
+                      </div>
+                    )}
                     <div className="ml-4 text-sm font-medium text-[var(--color-text-primary)]">{user.fullName}</div>
                   </div>
                 </td>

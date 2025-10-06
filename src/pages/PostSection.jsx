@@ -1,46 +1,82 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FiEye, FiTrash2, FiSearch, FiPlus } from 'react-icons/fi';
+import adminApi from '../api/admin';
+import { toast } from 'sonner';
 
 const PostSection = () => {
-  // Local state (replace with API integration later)
+  
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all'); // all | withMedia | reported
   const [sortBy, setSortBy] = useState('newest'); // newest | oldest | mostLiked | mostCommented
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const samplePosts = [
-    {
-      id: 1,
-      content: 'Welcome to the brand new Posts section! 🎉',
-      author: 'system',
-      likes: 5,
-      comments: 0,
-      date: new Date().toISOString(),
-      media: '',
-      reported: false,
-    },
-    {
-      id: 2,
-      content: 'Sample post with media preview placeholder.',
-      author: 'demo_user',
-      likes: 18,
-      comments: 3,
-      date: new Date(Date.now() - 3600_000).toISOString(),
-      media: 'sample.jpg',
-      reported: false,
-    },
-    {
-      id: 3,
-      content: 'This post has been reported for review.',
-      author: 'moderator',
-      likes: 2,
-      comments: 1,
-      date: new Date(Date.now() - 86_400_000).toISOString(),
-      media: '',
-      reported: true,
-    },
-  ];
+  
+
+  const mapPost = (t) => {
+    // normalize media into an array of usable URL strings (or empty array)
+    const normalizeMedia = (m) => {
+      if (!m) return [];
+      // string -> single url
+      if (typeof m === 'string') return [m];
+      // array -> map items to url or string fallback
+      if (Array.isArray(m)) {
+        return m
+          .map((it) => {
+            if (!it) return null;
+            if (typeof it === 'string') return it;
+            // common cloudinary / upload fields
+            return it.url || it.secure_url || it.path || it.src || it.public_url || null;
+          })
+          .filter(Boolean);
+      }
+      // object -> try to extract url-like fields
+      if (typeof m === 'object') return [m.url || m.secure_url || m.path || m.src || ''].filter(Boolean);
+      return [];
+    };
+
+    return {
+      id: t._id || t.id || t.postId || '',
+      content: t.content || t.text || t.body || '',
+      // author can be a string or an object; prefer username/name/userId when object
+      author: (() => {
+        const candidate = t.author ?? t.user ?? t.authorName ?? t.username;
+        if (!candidate) return (t.userEmail ? t.userEmail.split('@')[0] : 'unknown');
+        if (typeof candidate === 'string') return candidate;
+        // object -> try common fields
+        return candidate.username || candidate.name || candidate.userId || candidate.id || 'unknown';
+      })(),
+      likes: Number(t.likes ?? t.likeCount ?? t.reactions ?? 0) || 0,
+      comments: Number(t.comments ?? t.commentCount ?? 0) || 0,
+      date: t.createdAt || t.date || t.timestamp || new Date().toISOString(),
+      media: normalizeMedia(t.media ?? t.image ?? t.images ?? t.thumbnail ?? ''),
+      reported: Boolean(t.reported || t.isReported || (t.reports && t.reports.length)),
+      raw: t,
+    };
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await adminApi.getAllPosts();
+        console.log('[posts] getAllPosts raw', res);
+        let list = [];
+        if (Array.isArray(res)) list = res;
+        else if (Array.isArray(res?.data)) list = res.data;
+        else if (Array.isArray(res?.data?.data)) list = res.data.data;
+        setPosts(list.map(mapPost));
+      } catch (err) {
+        console.error('[posts] load error', err);
+        toast.error('Failed to load posts');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const formatDate = (dateString) => {
     try {
@@ -85,12 +121,66 @@ const PostSection = () => {
     return data;
   }, [posts, searchTerm, filter, sortBy]);
 
-  const handleView = (post) => setSelectedPost(post);
-  const handleDelete = (id) => {
-    if (window.confirm('Delete this post?')) setPosts((prev) => prev.filter((p) => p.id !== id));
+  const handleView = async (post) => {
+    setActionLoading(true);
+    try {
+      // fetch full post details
+      const res = await adminApi.getPostById(post.id);
+      console.log('[posts] getPostById raw', res);
+      let detail = res;
+      if (res?.data) detail = res.data;
+      if (res?.data?.data) detail = res.data.data;
+      setSelectedPost(mapPost(detail || post));
+    } catch (err) {
+      console.error('[posts] view error', err);
+      toast.error('Failed to load post');
+      setSelectedPost(post);
+    } finally {
+      setActionLoading(false);
+    }
   };
-  const handleSeed = () => setPosts(samplePosts);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this post?')) return;
+    setActionLoading(true);
+    try {
+      await adminApi.deletePost(id);
+      setPosts((prev) => prev.filter((p) => p.id !== id));
+      toast.success('Post deleted');
+      setSelectedPost(null);
+    } catch (err) {
+      console.error('[posts] delete error', err);
+      toast.error('Failed to delete post');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleClear = () => setPosts([]);
+
+  
+
+  const handleModerate = async (id, action) => {
+    // action: 'approve' | 'reject' | custom
+    setActionLoading(true);
+    try {
+      await adminApi.moderatePost(id, { action });
+      toast.success('Post moderation updated');
+      // refresh list
+      const res = await adminApi.getAllPosts();
+      let list = [];
+      if (Array.isArray(res)) list = res;
+      else if (Array.isArray(res?.data)) list = res.data;
+      else if (Array.isArray(res?.data?.data)) list = res.data.data;
+      setPosts(list.map(mapPost));
+      setSelectedPost(null);
+    } catch (err) {
+      console.error('[posts] moderate error', err);
+      toast.error('Failed to moderate post');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <div className="p-8 bg-[var(--color-bg-primary)] min-h-screen">
@@ -99,23 +189,10 @@ const PostSection = () => {
         <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-3xl font-bold text-[var(--color-text-primary)]">Posts</h2>
-            <p className="text-[var(--color-text-secondary)]">
-              Manage and moderate user posts. Connect this UI to your backend when ready.
-            </p>
+            
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={handleSeed}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-primary-cyan)] text-white hover:opacity-90"
-            >
-              <FiPlus className="w-4 h-4" /> Seed sample data
-            </button>
-            <button
-              onClick={handleClear}
-              className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] hover:opacity-90"
-            >
-              Clear
-            </button>
+      
           </div>
         </div>
 
@@ -174,14 +251,24 @@ const PostSection = () => {
                 </tr>
               </thead>
               <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-bg-tertiary)]">
-                {filteredPosts.length > 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-12 text-center text-[var(--color-text-secondary)]">Loading posts...</td>
+                  </tr>
+                ) : filteredPosts.length > 0 ? (
                   filteredPosts.map((post) => (
                     <tr key={post.id} className="hover:bg-[var(--color-bg-tertiary)] transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          {post.media && (
+                          {post.media && post.media.length > 0 && (
                             <div className="flex-shrink-0 h-10 w-10 rounded-md overflow-hidden bg-[var(--color-bg-tertiary)] flex items-center justify-center text-[var(--color-text-muted)]">
-                              <span className="text-xs">IMG</span>
+                              {/* show small thumbnail if we have a url */}
+                              {post.media[0] ? (
+                                // eslint-disable-next-line jsx-a11y/img-redundant-alt
+                                <img src={post.media[0]} alt="post thumbnail" className="h-10 w-10 object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              ) : (
+                                <span className="text-xs">IMG</span>
+                              )}
                             </div>
                           )}
                           <div className="ml-4">
@@ -228,7 +315,7 @@ const PostSection = () => {
                     <td colSpan="5" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3 text-[var(--color-text-secondary)]">
                         <div className="w-12 h-12 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">📭</div>
-                        <p>No posts to display. Use "Seed sample data" to preview the UI.</p>
+                        <p>No posts to display.</p>
                       </div>
                     </td>
                   </tr>
@@ -249,9 +336,19 @@ const PostSection = () => {
 
               <div className="p-6 overflow-y-auto flex-grow space-y-4">
                 <p className="text-[var(--color-text-primary)] whitespace-pre-line">{selectedPost.content}</p>
-                {selectedPost.media && (
+                {selectedPost.media && selectedPost.media.length > 0 && (
                   <div className="rounded-lg overflow-hidden bg-[var(--color-bg-tertiary)] flex items-center justify-center h-48">
-                    <span className="text-[var(--color-text-muted)]">Media: {selectedPost.media}</span>
+                    <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                      {selectedPost.media.length === 1 ? (
+                        <img src={selectedPost.media[0]} alt={`post media`} className="object-contain max-h-full max-w-full" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2 p-2 w-full h-full overflow-auto">
+                          {selectedPost.media.map((m, i) => (
+                            <img key={i} src={m} alt={`post media ${i + 1}`} className="object-cover w-full h-36 rounded" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="flex items-center gap-4 text-sm text-[var(--color-text-secondary)] border-t border-b border-[var(--color-bg-tertiary)] py-3">
@@ -263,7 +360,9 @@ const PostSection = () => {
 
               <div className="px-6 py-4 border-t border-[var(--color-bg-tertiary)] flex justify-end gap-3">
                 <button onClick={() => setSelectedPost(null)} className="px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-bg-tertiary)]">Close</button>
-                <button onClick={() => { handleDelete(selectedPost.id); setSelectedPost(null); }} className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg">Delete Post</button>
+                <button onClick={() => handleModerate(selectedPost.id, 'approve')} disabled={actionLoading} className="px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg">Approve</button>
+                <button onClick={() => handleModerate(selectedPost.id, 'reject')} disabled={actionLoading} className="px-4 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-lg">Reject</button>
+                <button onClick={() => { handleDelete(selectedPost.id); }} className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg">Delete Post</button>
               </div>
             </div>
           </div>
