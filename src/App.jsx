@@ -1,36 +1,15 @@
-import { Suspense, lazy } from 'react';
+import { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { routes } from './routes/Route';
 import { Toaster } from 'sonner';
 import SimpleLoader from './components/SimpleLoader';
+import Layout from './layouts/Layout';
 
-// Lazy load Layout component
-const Layout = lazy(() => import('./layouts/Layout'));
+// Split routes by layout property
+const layoutRoutes = routes.filter(route => route.layout !== false);
+const noLayoutRoutes = routes.filter(route => route.layout === false);
 
-function createRouteConfig(routes) {
-  return routes.map((route) => {
-    const routeConfig = {
-      path: route.path,
-      element: (
-        <Suspense fallback={<SimpleLoader />}>
-          {route.element}
-        </Suspense>
-      ),
-    };
-
-    if (route.index) {
-      routeConfig.index = route.index;
-    }
-
-    if (route.children && route.children.length > 0) {
-      routeConfig.children = createRouteConfig(route.children);
-    }
-
-    return routeConfig;
-  });
-}
-
-// Create the router with nested route support
+// Create router config
 const router = createBrowserRouter([
   {
     path: '/',
@@ -39,18 +18,34 @@ const router = createBrowserRouter([
         <Layout />
       </Suspense>
     ),
-    children: createRouteConfig(routes)
-  }
+    children: layoutRoutes.map(route => ({
+      path: route.path,
+      element: (
+        <Suspense fallback={<SimpleLoader />}>
+          {route.element}
+        </Suspense>
+      ),
+      index: route.index,
+    })),
+  },
+  ...noLayoutRoutes.map(route => ({
+    path: route.path,
+    element: (
+      <Suspense fallback={<SimpleLoader />}>
+        {route.element}
+      </Suspense>
+    ),
+    index: route.index,
+  })),
 ]);
 
 function App() {
-
   return (
     <Suspense fallback={<SimpleLoader />}>
       <Toaster richColors position='bottom-left'/>
       <RouterProvider router={router} />
     </Suspense>
-  ) 
+  );
 }
 
-export default App
+export default App;

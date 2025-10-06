@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
 
-    // This is a simple mock for demonstration purposes.
-    if (email === 'admin@example.com' && password === 'password123') {
-      localStorage.setItem('authToken', 'fake-token-123');
-      navigate('/');
+    const res = await login({ email, password });
+    if (res.ok) {
+      navigate('/dashboard');
     } else {
-      setError('Invalid email or password.');
+      setError(res.error || 'Login failed.');
     }
   };
 

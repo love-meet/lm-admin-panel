@@ -1,12 +1,12 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const isAuthenticated = true; // Simulating a check, e.g., from an auth context or a token check
-
-export default function ProtectedRoute() {
-  if (!isAuthenticated) {
+export default function ProtectedRoute({ children }) {
+  const { admin } = useAuth(); 
+  if (!admin) {
     return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />;
+  return children;
 }

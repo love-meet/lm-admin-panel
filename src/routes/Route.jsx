@@ -1,40 +1,42 @@
-// src/routes/Route.jsx
 import { lazy } from 'react';
+import ProtectedRoute from './ProtectedRoute';
+import { layouts } from 'chart.js';
 
-// Lazy loaded pages
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Users = lazy(() => import('../pages/Users'));
 const Admins = lazy(() => import('../pages/Admins'));
 const Agents = lazy(() => import('../pages/Agents'));
-const Posts = lazy(() => import('../pages/Posts'));
+const PostSection = lazy(() => import('../pages/PostSection'));
 const Reports = lazy(() => import('../pages/Reports'));
 const Transactions = lazy(() => import('../pages/Transactions'));
-const Tickets = lazy(() => import('../pages/Tickets'));
+const SupportTickets = lazy(() => import('../pages/SupportTickets'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 const Login = lazy(() => import('../pages/Login'));
 
 export const routes = [
-  // Public routes that don't need a layout or protection
+  // Public routes
   {
-    path: '/',
-    element: Login,
+    path: '/login',
+    element: <Login />,
     protected: false,
-    layout: false, // Explicitly state no layout
+    layout: false,
+    showInNav: false,
+    layouts: false,
   },
-  
-  // Protected routes that require the main layout
+
+  // Protected routes
   {
-    path: '/dashbaord',
-    element: <Dashboard />,
+    path: '/dashboard',
+    element: <ProtectedRoute><Dashboard /></ProtectedRoute>,
     name: 'Dashboard',
     showInNav: true,
     protected: true,
-    layout: true, // Requires the main Layout component
-    index: true, // This is the default child route for '/'
+    layout: true,
+    index: true,
   },
   {
     path: '/users',
-    element: < Users/>,
+    element: <ProtectedRoute><Users /></ProtectedRoute>,
     name: 'Users',
     showInNav: true,
     protected: true,
@@ -42,7 +44,7 @@ export const routes = [
   },
   {
     path: '/admins',
-    element: < Admins/>,
+    element: <ProtectedRoute><Admins /></ProtectedRoute>,
     name: 'Admins',
     showInNav: true,
     protected: true,
@@ -50,7 +52,7 @@ export const routes = [
   },
   {
     path: '/agents',
-    element: < Agents/>,
+    element: <ProtectedRoute><Agents /></ProtectedRoute>,
     name: 'Agents',
     showInNav: true,
     protected: true,
@@ -58,7 +60,7 @@ export const routes = [
   },
   {
     path: '/posts',
-    element: Posts,
+    element: <ProtectedRoute><PostSection /></ProtectedRoute>,
     name: 'Posts',
     showInNav: true,
     protected: true,
@@ -66,7 +68,7 @@ export const routes = [
   },
   {
     path: '/reports',
-    element: Reports,
+    element: <ProtectedRoute><Reports /></ProtectedRoute>,
     name: 'Reports',
     showInNav: true,
     protected: true,
@@ -74,7 +76,7 @@ export const routes = [
   },
   {
     path: '/transactions',
-    element: Transactions,
+    element: <ProtectedRoute><Transactions /></ProtectedRoute>,
     name: 'Transactions',
     showInNav: true,
     protected: true,
@@ -82,17 +84,17 @@ export const routes = [
   },
   {
     path: '/tickets',
-    element: Tickets,
+    element: <ProtectedRoute><SupportTickets /></ProtectedRoute>,
     name: 'Tickets',
     showInNav: true,
     protected: true,
     layout: true,
   },
 
-  // 404 page for unmatched routes
+  // 404
   {
     path: '*',
-    element: NotFound,
+    element: <NotFound />,
     protected: false,
     layout: false,
   },
