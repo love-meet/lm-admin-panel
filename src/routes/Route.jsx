@@ -10,7 +10,7 @@ const PostSection = lazy(() => import('../pages/PostSection'));
 const Reports = lazy(() => import('../pages/Reports'));
 const Transactions = lazy(() => import('../pages/Transactions'));
 const SupportTickets = lazy(() => import('../pages/SupportTickets'));
-const NotFound = lazy(() => import('../pages/NotFound'));
+const NotFound = lazy(() => import('../pages/Notfound'));
 const Login = lazy(() => import('../pages/Login'));
 
 export const routes = [
