@@ -1,6 +1,5 @@
 import { lazy } from 'react';
 import ProtectedRoute from './ProtectedRoute';
-import { layouts } from 'chart.js';
 
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Users = lazy(() => import('../pages/Users'));
@@ -17,6 +16,16 @@ export const routes = [
   // Public routes
   {
     path: '/login',
+    element: <Login />,
+    protected: false,
+    layout: false,
+    showInNav: false,
+    layouts: false,
+  },
+
+  // redirect root to login
+  {
+    path: '/',
     element: <Login />,
     protected: false,
     layout: false,
