@@ -11,23 +11,7 @@ const noLayoutRoutes = routes.filter(route => route.layout === false);
 
 // Create router config
 const router = createBrowserRouter([
-  {
-    path: '/',
-    element: (
-      <Suspense fallback={<SimpleLoader />}>
-        <Layout />
-      </Suspense>
-    ),
-    children: layoutRoutes.map(route => ({
-      path: route.path,
-      element: (
-        <Suspense fallback={<SimpleLoader />}>
-          {route.element}
-        </Suspense>
-      ),
-      index: route.index,
-    })),
-  },
+  // no-layout routes (login, root, etc.)
   ...noLayoutRoutes.map(route => ({
     path: route.path,
     element: (
@@ -36,6 +20,26 @@ const router = createBrowserRouter([
       </Suspense>
     ),
     index: route.index,
+  })),
+
+  // layout routes: wrap each route with Layout so Layout only mounts for those paths
+  ...layoutRoutes.map(route => ({
+    path: route.path,
+    element: (
+      <Suspense fallback={<SimpleLoader />}>
+        <Layout />
+      </Suspense>
+    ),
+    children: [
+      {
+        index: true,
+        element: (
+          <Suspense fallback={<SimpleLoader />}>
+            {route.element}
+          </Suspense>
+        ),
+      }
+    ],
   })),
 ]);
 
