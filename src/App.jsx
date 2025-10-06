@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { routes } from './routes/Route';
 import { Toaster } from 'sonner';
-import SimpleLoader from './components/SimpleLoader';
+import SimpleLoader from './components/Simpleloader';
 import Layout from './layouts/Layout';
 
 // Split routes by layout property

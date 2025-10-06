@@ -134,6 +134,31 @@ export const getReports = async (params = {}) => {
   }
 };
 
+// Stats (dashboard)
+export const getStats = async (params = {}) => {
+  try {
+    // Example endpoint: GET /admin/stats?period=daily
+    const res = await api.get('/admin/stats', { params });
+    console.log('[adminApi] getStats response', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getStats error', err);
+    throw err;
+  }
+};
+
+export const getStatsList = async (metric, params = {}) => {
+  try {
+    // Example endpoint: GET /admin/stats/{metric}/list?period=daily
+    const res = await api.get(`/admin/stats/${metric}/list`, { params });
+    console.log('[adminApi] getStatsList response', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getStatsList error', err);
+    throw err;
+  }
+};
+
 const adminApi = {
   getAllUsers,
   getUserById,
@@ -147,6 +172,8 @@ const adminApi = {
   getTransactionById,
   refundTransaction,
   getReports,
+  getStats,
+  getStatsList,
 };
 
 export default adminApi;
