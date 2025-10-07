@@ -7,6 +7,8 @@ const Admins = lazy(() => import('../pages/Admins'));
 const Agents = lazy(() => import('../pages/Agents'));
 const PostSection = lazy(() => import('../pages/PostSection'));
 const Reports = lazy(() => import('../pages/Reports'));
+const DashboardReports = lazy(() => import('../pages/DashboardReports'));
+const ApiTester = lazy(() => import('../pages/ApiTester'));
 const Transactions = lazy(() => import('../pages/Transactions'));
 const SupportTickets = lazy(() => import('../pages/SupportTickets'));
 const NotFound = lazy(() => import('../pages/Notfound'));
@@ -79,6 +81,22 @@ export const routes = [
     path: '/reports',
     element: <ProtectedRoute><Reports /></ProtectedRoute>,
     name: 'Reports',
+    showInNav: true,
+    protected: true,
+    layout: true,
+  },
+  {
+    path: '/dashboard-reports',
+    element: <ProtectedRoute><DashboardReports /></ProtectedRoute>,
+    name: 'Dashboard Reports',
+    showInNav: true,
+    protected: true,
+    layout: true,
+  },
+  {
+    path: '/api-tester',
+    element: <ProtectedRoute><ApiTester /></ProtectedRoute>,
+    name: 'API Tester',
     showInNav: true,
     protected: true,
     layout: true,

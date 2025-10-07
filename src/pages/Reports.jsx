@@ -1,204 +1,241 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import adminApi from '../api/admin';
 import { toast } from 'sonner';
-import Modal from '../components/Modal';
-
-const DEFAULT_STATS = {
-  users: 1245,
-  deposits: 842,
-  withdrawals: 193,
-  posts: 4821,
-  subscribers: 312,
-  gifts: 1040,
-  affiliateBonuses: 72,
-};
-
-const METRICS = [
-  { key: 'users', label: 'Registered Users' },
-  { key: 'deposits', label: 'Deposits' },
-  { key: 'withdrawals', label: 'Withdrawals' },
-  { key: 'posts', label: 'Posts Made' },
-  { key: 'subscribers', label: 'Subscribers' },
-  { key: 'gifts', label: 'Gifts' },
-  { key: 'affiliateBonuses', label: 'Affiliate Bonuses' },
-];
 
 const Reports = () => {
   const [period, setPeriod] = useState('daily');
-  const [stats, setStats] = useState(DEFAULT_STATS);
-  const [loading, setLoading] = useState(false);
-
-  const [activeMetric, setActiveMetric] = useState(null);
-  const [listItems, setListItems] = useState([]);
-  const [listLoading, setListLoading] = useState(false);
-
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [userLoading, setUserLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [reportsData, setReportsData] = useState(null);
+  const [statistics, setStatistics] = useState(null);
 
   useEffect(() => {
-    const load = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await adminApi.getStats({ period });
-        console.log('[reports] getStats raw', res);
-        let data = res;
-        if (res?.data) data = res.data;
-        if (data && typeof data === 'object') {
-          setStats((prev) => ({ ...prev, ...data }));
+        // Fetch reports data using the backend API endpoints
+        const reportsResponse = period === 'daily'
+          ? await adminApi.getDashboardReportsDaily()
+          : await adminApi.getDashboardReportsMonthly();
+
+        console.log('[reports] reports data:', reportsResponse);
+
+        if (reportsResponse) {
+          if (reportsResponse.data && typeof reportsResponse.data === 'object') {
+            setReportsData(reportsResponse.data);
+          } else if (typeof reportsResponse === 'object') {
+            setReportsData(reportsResponse);
+          }
+        }
+
+        // Fetch statistics using the backend API endpoint
+        const statsResponse = await adminApi.getDashboardStatistics();
+        console.log('[reports] statistics data:', statsResponse);
+
+        if (statsResponse) {
+          if (statsResponse.data && typeof statsResponse.data === 'object') {
+            setStatistics(statsResponse.data);
+          } else if (typeof statsResponse === 'object') {
+            setStatistics(statsResponse);
+          }
         }
       } catch (err) {
-        console.error('[reports] stats load error', err);
-        toast.error('Failed to load stats; using cached numbers');
+        console.error('[reports] load error', err);
+        toast.error('Failed to load reports data');
       } finally {
         setLoading(false);
       }
     };
-    load();
+
+    fetchData();
   }, [period]);
 
-  const openMetricList = async (metric) => {
-    setActiveMetric(metric);
-    setListLoading(true);
-    try {
-      const res = await adminApi.getStatsList(metric, { period });
-      console.log('[reports] getStatsList raw', metric, res);
-      let list = [];
-      if (Array.isArray(res)) list = res;
-      else if (Array.isArray(res?.data)) list = res.data;
-      else if (Array.isArray(res?.data?.data)) list = res.data.data;
-      setListItems(list);
-    } catch (err) {
-      console.error('[reports] stats list error', err);
-      toast.error('Failed to load list');
-      setListItems([]);
-    } finally {
-      setListLoading(false);
+  // Helper function to extract total from collection data
+  const getTotalFromCollection = (collectionData) => {
+    if (!collectionData || !Array.isArray(collectionData) || collectionData.length === 0) {
+      return 0;
     }
+    
+    // Sum up all totals from the collection
+    return collectionData.reduce((sum, item) => {
+      return sum + (item.total || 0);
+    }, 0);
   };
-
-  const closeMetricList = () => {
-    setActiveMetric(null);
-    setListItems([]);
-  };
-
-  const viewUser = async (item) => {
-    const uid = item?.userId || item?.id || item?.user || item?.email || null;
-    if (!uid) {
-      toast.error('No user id available');
-      return;
-    }
-    setUserLoading(true);
-    try {
-      const res = await adminApi.getUserById(uid);
-      console.log('[reports] getUserById raw', res);
-      let user = res?.user || res?.data || res;
-      setSelectedUser(user);
-    } catch (err) {
-      console.error('[reports] view user error', err);
-      toast.error('Failed to load user details');
-    } finally {
-      setUserLoading(false);
-    }
-  };
-
-  const StatTile = ({ metricKey, label, value }) => (
-    <button
-      onClick={() => openMetricList(metricKey)}
-      className="flex-1 p-6 rounded-lg bg-[var(--color-bg-tertiary)] hover:scale-[1.01] transition-transform shadow-md flex flex-col justify-between"
-    >
-      <div className="text-sm text-[var(--color-text-secondary)]">{label}</div>
-      <div className="text-2xl font-bold text-[var(--color-text-primary)] mt-3">{typeof value === 'number' ? value.toLocaleString() : value}</div>
-    </button>
-  );
 
   return (
     <div className="p-8 bg-[var(--color-bg-primary)] min-h-screen">
-      <div className="max-w-[1400px] mx-auto">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-[var(--color-text-primary)]">Site Statistics</h2>
-            <p className="text-[var(--color-text-secondary)]">Daily / monthly overview of key metrics.</p>
-          </div>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-[var(--color-text-primary)] mb-2">
+            Reports
+          </h1>
+          <p className="text-[var(--color-text-secondary)]">
+            Backend-driven analytics and reporting
+          </p>
+        </div>
+
+        {/* Period Selector */}
+        <div className="mb-8">
           <div className="flex items-center gap-3">
+            <span className="text-[var(--color-text-secondary)]">Period:</span>
             <button
               onClick={() => setPeriod('daily')}
-              className={`px-3 py-2 rounded-md ${period === 'daily' ? 'bg-[var(--color-primary-cyan)] text-white' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)]'}`}>
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                period === 'daily'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]'
+              }`}
+            >
               Daily
             </button>
             <button
               onClick={() => setPeriod('monthly')}
-              className={`px-3 py-2 rounded-md ${period === 'monthly' ? 'bg-[var(--color-primary-cyan)] text-white' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)]'}`}>
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                period === 'monthly'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]'
+              }`}
+            >
               Monthly
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {METRICS.map((m) => (
-            <StatTile key={m.key} metricKey={m.key} label={m.label} value={stats[m.key] ?? 0} />
-          ))}
-        </div>
-
-        {activeMetric && (
-          <Modal isOpen={!!activeMetric} onClose={closeMetricList} title={`${METRICS.find(m => m.key === activeMetric)?.label} • ${period}`} size="lg">
-            <div className="p-2">
-              <div className="mb-3 text-sm text-[var(--color-text-secondary)]">Click a name to view details.</div>
-              <div className="bg-[var(--color-bg-secondary)] rounded-lg overflow-hidden">
-                {listLoading ? (
-                  <div className="p-6 text-[var(--color-text-secondary)]">Loading...</div>
-                ) : listItems.length === 0 ? (
-                  <div className="p-6 text-[var(--color-text-secondary)]">No entries found.</div>
-                ) : (
-                  <ul className="divide-y divide-[var(--color-bg-tertiary)]">
-                    {listItems.map((it, idx) => (
-                      <li key={it.id || it.userId || it.email || idx} className="px-4 py-3 flex items-center justify-between">
-                        <div>
-                          <button onClick={() => viewUser(it)} className="text-left text-[var(--color-text-primary)] hover:underline">{it.name || it.fullName || it.username || it.email || String(it)}</button>
-                          <div className="text-sm text-[var(--color-text-secondary)]">{it.email || it.userId || ''}</div>
-                        </div>
-                        <div className="text-sm text-[var(--color-text-secondary)]">{it.amount ? it.amount : ''}</div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-[var(--color-text-secondary)]">Loading reports data...</p>
             </div>
-          </Modal>
+          </div>
         )}
 
-        {selectedUser && (
-          <Modal isOpen={!!selectedUser} onClose={() => setSelectedUser(null)} title={`User • ${selectedUser?.fullName || selectedUser?.username || selectedUser?.email}`} size="lg">
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                  <div className="text-xs text-[var(--color-text-secondary)]">Name</div>
-                  <div className="text-[var(--color-text-primary)]">{selectedUser?.fullName || selectedUser?.username}</div>
-                </div>
-                <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                  <div className="text-xs text-[var(--color-text-secondary)]">Email</div>
-                  <div className="text-[var(--color-text-primary)]">{selectedUser?.email}</div>
-                </div>
-                <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                  <div className="text-xs text-[var(--color-text-secondary)]">Subscription</div>
-                  <div className="text-[var(--color-text-primary)]">{selectedUser?.subscriptionPlan?.planName || selectedUser?.subscriptionPlan || 'Free'}</div>
-                </div>
-                <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                  <div className="text-xs text-[var(--color-text-secondary)]">Status</div>
-                  <div className="text-[var(--color-text-primary)]">{selectedUser?.isDisabled ? 'Suspended' : selectedUser?.verified ? 'Verified' : 'Active'}</div>
-                </div>
-                <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                  <div className="text-xs text-[var(--color-text-secondary)]">Balance</div>
-                  <div className="text-[var(--color-text-primary)]">{selectedUser?.balance ?? selectedUser?.raw?.balance ?? 0}</div>
-                </div>
-                <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-                  <div className="text-xs text-[var(--color-text-secondary)]">Joined</div>
-                  <div className="text-[var(--color-text-primary)]">{selectedUser?.dateJoined || selectedUser?.createdAt}</div>
+        {/* Content */}
+        {!loading && (
+          <div className="space-y-8">
+            {/* Statistics Section */}
+            {statistics && Object.keys(statistics).length > 0 && (
+              <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-4">
+                  Dashboard Statistics
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Object.entries(statistics).map(([key, value]) => (
+                    <div key={key} className="bg-[var(--color-bg-tertiary)] rounded-lg p-6 hover:shadow-lg transition-shadow">
+                      <div className="text-sm text-[var(--color-text-secondary)] capitalize mb-2">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </div>
+                      <div className="text-3xl font-bold text-[var(--color-text-primary)]">
+                        {typeof value === 'number' ? value.toLocaleString() :
+                         typeof value === 'object' ? JSON.stringify(value) :
+                         String(value)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          </Modal>
-        )}
+            )}
 
+            {/* Reports Section - UPDATED */}
+            {reportsData && Object.keys(reportsData).length > 0 && (
+              <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-6">
+                  {period === 'daily' ? 'Daily Reports' : 'Monthly Reports'}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* User Reports - Only Total */}
+                  {reportsData.User && (
+                    <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-6">
+                      <div className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+                        👥 Users
+                      </div>
+                      <div className="text-3xl font-bold text-[var(--color-text-primary)] text-center">
+                        {getTotalFromCollection(reportsData.User).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-[var(--color-text-secondary)] text-center mt-2">
+                        Total Users
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Deposit Reports - Only Total */}
+                  {reportsData.Deposit && (
+                    <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-6">
+                      <div className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+                        💰 Deposits
+                      </div>
+                      <div className="text-3xl font-bold text-[var(--color-text-primary)] text-center">
+                        {getTotalFromCollection(reportsData.Deposit).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-[var(--color-text-secondary)] text-center mt-2">
+                        Total Deposits
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Withdrawal Reports */}
+                  {reportsData.Withdrawal && (
+                    <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-6">
+                      <div className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+                        🏦 Withdrawals
+                      </div>
+                      <div className="text-3xl font-bold text-[var(--color-text-primary)] text-center">
+                        {getTotalFromCollection(reportsData.Withdrawal).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-[var(--color-text-secondary)] text-center mt-2">
+                        Total Withdrawals
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Post Reports */}
+                  {reportsData.Post && (
+                    <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-6">
+                      <div className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+                        📝 Posts
+                      </div>
+                      <div className="text-3xl font-bold text-[var(--color-text-primary)] text-center">
+                        {getTotalFromCollection(reportsData.Post).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-[var(--color-text-secondary)] text-center mt-2">
+                        Total Posts
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AffiliationCount Reports */}
+                  {reportsData.AffiliationCount && (
+                    <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-6">
+                      <div className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+                        🤝 Affiliations
+                      </div>
+                      <div className="text-3xl font-bold text-[var(--color-text-primary)] text-center">
+                        {getTotalFromCollection(reportsData.AffiliationCount).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-[var(--color-text-secondary)] text-center mt-2">
+                        Total Affiliations
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* No Data State */}
+            {(!statistics || Object.keys(statistics).length === 0) &&
+             (!reportsData || Object.keys(reportsData).length === 0) && (
+              <div className="text-center py-16 bg-[var(--color-bg-secondary)] rounded-lg">
+                <div className="text-4xl mb-4">📊</div>
+                <h3 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">
+                  No Reports Data Available
+                </h3>
+                <p className="text-[var(--color-text-secondary)]">
+                  No data could be loaded from the backend APIs.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

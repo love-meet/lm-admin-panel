@@ -294,6 +294,62 @@ export const getDashboardSubscriptionRevenue = async (params = {}) => {
   }
 };
 
+// Additional endpoints from task
+export const getUserGrowth = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/user-growth', { params });
+    console.log('[adminApi] getUserGrowth', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getUserGrowth error', err);
+    throw err;
+  }
+};
+
+export const getSubscriptionRevenue = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/subscription-revenue', { params });
+    console.log('[adminApi] getSubscriptionRevenue', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getSubscriptionRevenue error', err);
+    throw err;
+  }
+};
+
+export const getDashboardStatistics = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/dashboard/statistics', { params });
+    console.log('[adminApi] getDashboardStatistics', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getDashboardStatistics error', err);
+    throw err;
+  }
+};
+
+export const getDashboardReportsDaily = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/dashboard/reports/daily', { params });
+    console.log('[adminApi] getDashboardReportsDaily', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getDashboardReportsDaily error', err);
+    throw err;
+  }
+};
+
+export const getDashboardReportsMonthly = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/dashboard/reports/monthly', { params });
+    console.log('[adminApi] getDashboardReportsMonthly', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getDashboardReportsMonthly error', err);
+    throw err;
+  }
+};
+
 const adminApi = {
   getAllUsers,
   getUserById,
@@ -321,6 +377,11 @@ const adminApi = {
   getDashboardUserGrowth,
   getDashboardSummary,
   getDashboardSubscriptionRevenue,
+  getUserGrowth,
+  getSubscriptionRevenue,
+  getDashboardStatistics,
+  getDashboardReportsDaily,
+  getDashboardReportsMonthly,
 };
 
 export default adminApi;
