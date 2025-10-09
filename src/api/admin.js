@@ -350,6 +350,107 @@ export const getDashboardReportsMonthly = async (params = {}) => {
   }
 };
 
+// Detailed reports endpoints
+export const getUsersReportsDaily = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/users/reports/daily', { params });
+    console.log('[adminApi] getUsersReportsDaily', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getUsersReportsDaily error', err);
+    throw err;
+  }
+};
+
+export const getDepositsReportsDaily = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/deposits/reports/daily', { params });
+    console.log('[adminApi] getDepositsReportsDaily', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getDepositsReportsDaily error', err);
+    throw err;
+  }
+};
+
+export const getWithdrawalsReportsDaily = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/withdrawals/reports/daily', { params });
+    console.log('[adminApi] getWithdrawalsReportsDaily', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getWithdrawalsReportsDaily error', err);
+    throw err;
+  }
+};
+
+export const getPostReportDaily = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/post/report/daily', { params });
+    console.log('[adminApi] getPostReportDaily', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getPostReportDaily error', err);
+    throw err;
+  }
+};
+
+export const getAffiliateReportDaily = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/affiliate/report/daily', { params });
+    console.log('[adminApi] getAffiliateReportDaily', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getAffiliateReportDaily error', err);
+    throw err;
+  }
+};
+
+export const getTransactionReportsDaily = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/transaction/report/daily', { params });
+    console.log('[adminApi] getTransactionReportsDaily', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getTransactionReportsDaily error', err);
+    throw err;
+  }
+};
+
+// Admin management endpoints
+export const getAdmins = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/admins', { params });
+    console.log('[adminApi] getAdmins', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getAdmins error', err);
+    throw err;
+  }
+};
+
+export const createAdmin = async (body = {}) => {
+  try {
+    const res = await api.post('/admin/create-admins', body);
+    console.log('[adminApi] createAdmin', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] createAdmin error', err);
+    throw err;
+  }
+};
+
+export const updateAdmin = async (adminId, body = {}) => {
+  try {
+    const res = await api.put(`/admin/update-admin/${adminId}`, body);
+    console.log('[adminApi] updateAdmin', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] updateAdmin error', err);
+    throw err;
+  }
+};
+
 const adminApi = {
   getAllUsers,
   getUserById,
@@ -382,6 +483,15 @@ const adminApi = {
   getDashboardStatistics,
   getDashboardReportsDaily,
   getDashboardReportsMonthly,
+  getUsersReportsDaily,
+  getDepositsReportsDaily,
+  getWithdrawalsReportsDaily,
+  getPostReportDaily,
+  getAffiliateReportDaily,
+  getTransactionReportsDaily,
+  getAdmins,
+  createAdmin,
+  updateAdmin,
 };
 
 export default adminApi;

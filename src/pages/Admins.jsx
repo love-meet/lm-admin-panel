@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiShield, FiUserX } from 'react-icons/fi';
 import Modal from '../components/Modal';
+import adminApi from '../api/admin';
 
 const mockAdmins = [
   {
@@ -22,18 +23,58 @@ const mockAdmins = [
 ];
 
 export default function Admins() {
-  const [admins, setAdmins] = useState(mockAdmins);
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [roleModal, setRoleModal] = useState(null); // admin
   const [confirm, setConfirm] = useState(null); // { admin }
+
+  // Fetch admins from API
+  useEffect(() => {
+    const loadAdmins = async () => {
+      setLoading(true);
+      try {
+        const res = await adminApi.getAdmins();
+        // Normalize response shapes
+        let list = [];
+        if (Array.isArray(res)) {
+          list = res;
+        } else if (Array.isArray(res?.data)) {
+          list = res.data;
+        } else if (Array.isArray(res?.data?.data)) {
+          list = res.data.data;
+        } else if (Array.isArray(res?.admins)) {
+          list = res.admins;
+        } else if (Array.isArray(res?.data?.admins)) {
+          list = res.data.admins;
+        }
+
+        setAdmins(list.length ? list : mockAdmins);
+      } catch (err) {
+        console.error('[admins] fetch error', err);
+        setAdmins(mockAdmins);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAdmins();
+  }, []);
 
   const handleAction = (action, admin) => {
     if (action === 'Update Role') setRoleModal(admin);
     if (action === 'Deactivate') setConfirm({ admin });
   };
 
-  const applyRoleUpdate = (id, role) => {
-    setAdmins((prev) => prev.map((a) => (a.id === id ? { ...a, role } : a)));
+  const applyRoleUpdate = async (id, role) => {
+    try {
+      const res = await adminApi.updateAdmin(id, { role });
+      console.log('Admin role updated:', res);
+      // Update local state
+      setAdmins((prev) => prev.map((a) => (a.id === id ? { ...a, role } : a)));
+    } catch (err) {
+      console.error('Failed to update admin role:', err);
+      throw err;
+    }
   };
 
   const deactivateAdmin = (id) => {
@@ -42,6 +83,21 @@ export default function Admins() {
 
   const openCreateAdminModal = () => {
     setCreateOpen(true);
+  };
+
+  const createNewAdmin = async (adminData) => {
+    try {
+      const res = await adminApi.createAdmin(adminData);
+      console.log('Admin created:', res);
+      // Add the new admin to the list
+      if (res?.data) {
+        setAdmins((prev) => [res.data, ...prev]);
+      }
+      return res;
+    } catch (err) {
+      console.error('Failed to create admin:', err);
+      throw err;
+    }
   };
 
   return (
@@ -83,7 +139,20 @@ export default function Admins() {
             </tr>
           </thead>
           <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-bg-tertiary)]">
-            {admins.map((admin) => (
+            {loading ? (
+              <tr>
+                <td colSpan="7" className="px-6 py-4 text-center text-[var(--color-text-secondary)]">
+                  Loading admins...
+                </td>
+              </tr>
+            ) : admins.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="px-6 py-4 text-center text-[var(--color-text-secondary)]">
+                  No admins found
+                </td>
+              </tr>
+            ) : (
+              admins.map((admin) => (
               <tr key={admin.id} className="hover:bg-[var(--color-bg-tertiary)] transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-primary)]">{admin.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-text-primary)]">{admin.name}</td>
@@ -118,7 +187,8 @@ export default function Admins() {
                   </div>
                 </td>
               </tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -132,20 +202,24 @@ export default function Admins() {
           <>
             <button onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] hover:opacity-90">Cancel</button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 const form = document.getElementById('create-admin-form');
                 const fd = new FormData(form);
-                const id = `ADM${String(admins.length + 1).padStart(3, '0')}`;
-                const newAdmin = {
-                  id,
-                  name: `${fd.get('firstName')} ${fd.get('lastName')}`.trim(),
+                const adminData = {
+                  firstName: fd.get('firstName'),
+                  lastName: fd.get('lastName'),
                   email: fd.get('email'),
+                  password: fd.get('password'),
                   role: fd.get('role'),
-                  lastLogin: '—',
-                  status: 'Active',
                 };
-                setAdmins((prev) => [newAdmin, ...prev]);
-                setCreateOpen(false);
+
+                try {
+                  await createNewAdmin(adminData);
+                  setCreateOpen(false);
+                } catch (err) {
+                  // Error is already logged in createNewAdmin
+                  // Could show toast here if needed
+                }
               }}
               className="px-4 py-2 rounded-lg bg-[var(--color-primary-cyan)] text-white hover:opacity-90"
             >
@@ -191,12 +265,18 @@ export default function Admins() {
           <>
             <button onClick={() => setRoleModal(null)} className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] hover:opacity-90">Cancel</button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 const form = document.getElementById('update-role-form');
                 const fd = new FormData(form);
                 const role = fd.get('role');
-                applyRoleUpdate(roleModal.id, role);
-                setRoleModal(null);
+
+                try {
+                  await applyRoleUpdate(roleModal.id, role);
+                  setRoleModal(null);
+                } catch (err) {
+                  // Error is already logged in applyRoleUpdate
+                  // Could show toast here if needed
+                }
               }}
               className="px-4 py-2 rounded-lg bg-[var(--color-primary-cyan)] text-white hover:opacity-90"
             >

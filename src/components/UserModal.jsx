@@ -278,10 +278,15 @@ export default function UserModal() {
               {!editing ? (
                 <div className="text-[var(--color-text-primary)]">{user.subscriptionPlan}{user.raw?.subscriptionPlan && typeof user.raw.subscriptionPlan === 'object' ? ` • ${user.raw.subscriptionPlan.planName || ''}` : ''}</div>
               ) : (
-                <select className="w-full px-3 py-1 rounded" value={formState?.subscriptionPlan} onChange={(e) => onChange('subscriptionPlan', e.target.value)}>
+                <select className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.subscriptionPlan} onChange={(e) => onChange('subscriptionPlan', e.target.value)}>
                   <option value="Free">Free</option>
-                  <option value="Basic">Basic</option>
-                  <option value="Premium">Premium</option>
+                  <option value="Orbit">Orbit</option>
+                  <option value="Starlight">Starlight</option>
+                  <option value="Nova">Nova</option>
+                  <option value="Equinox">Equinox</option>
+                  <option value="Polaris">Polaris</option>
+                  <option value="Orion">Orion</option>
+                  <option value="Cosmos">Cosmos</option>
                 </select>
               )}
             </div>

@@ -35,3 +35,16 @@ body {
   display: none; /* Chrome, Safari, Opera */
 }
 
+/* Cursor pointer for all clickable elements */
+button,
+a,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="file"]::-webkit-file-upload-button,
+[role="button"],
+[onclick],
+.cursor-pointer {
+  cursor: pointer;
+}
+

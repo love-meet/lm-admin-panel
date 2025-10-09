@@ -4,7 +4,6 @@ import ProtectedRoute from './ProtectedRoute';
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Users = lazy(() => import('../pages/Users'));
 const Admins = lazy(() => import('../pages/Admins'));
-const Agents = lazy(() => import('../pages/Agents'));
 const PostSection = lazy(() => import('../pages/PostSection'));
 const Reports = lazy(() => import('../pages/Reports'));
 const DashboardReports = lazy(() => import('../pages/DashboardReports'));
@@ -57,14 +56,6 @@ export const routes = [
     path: '/admins',
     element: <ProtectedRoute><Admins /></ProtectedRoute>,
     name: 'Admins',
-    showInNav: true,
-    protected: true,
-    layout: true,
-  },
-  {
-    path: '/agents',
-    element: <ProtectedRoute><Agents /></ProtectedRoute>,
-    name: 'Agents',
     showInNav: true,
     protected: true,
     layout: true,

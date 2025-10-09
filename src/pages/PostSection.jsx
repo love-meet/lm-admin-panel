@@ -3,6 +3,31 @@ import { FiEye, FiTrash2, FiSearch, FiPlus } from 'react-icons/fi';
 import adminApi from '../api/admin';
 import { toast } from 'sonner';
 
+// Helper to read URL params
+const readQuery = (key) => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(key);
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to set URL params
+const setQuery = (key, value) => {
+  try {
+    const url = new URL(window.location.href);
+    if (value) {
+      url.searchParams.set(key, value);
+    } else {
+      url.searchParams.delete(key);
+    }
+    window.history.replaceState({}, '', url);
+  } catch (e) {
+    // ignore
+  }
+};
+
 const PostSection = () => {
   
   const [posts, setPosts] = useState([]);
@@ -12,6 +37,8 @@ const PostSection = () => {
   const [sortBy, setSortBy] = useState('newest'); // newest | oldest | mostLiked | mostCommented
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   
 
@@ -67,7 +94,17 @@ const PostSection = () => {
         if (Array.isArray(res)) list = res;
         else if (Array.isArray(res?.data)) list = res.data;
         else if (Array.isArray(res?.data?.data)) list = res.data.data;
-        setPosts(list.map(mapPost));
+        const mappedPosts = list.map(mapPost);
+        setPosts(mappedPosts);
+
+        // Check for URL param to restore modal state
+        const postId = readQuery('post');
+        if (postId) {
+          const post = mappedPosts.find(p => p.id === postId);
+          if (post) {
+            handleView(post);
+          }
+        }
       } catch (err) {
         console.error('[posts] load error', err);
         toast.error('Failed to load posts');
@@ -121,6 +158,13 @@ const PostSection = () => {
     return data;
   }, [posts, searchTerm, filter, sortBy]);
 
+  const paginatedPosts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredPosts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredPosts, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredPosts.length / itemsPerPage);
+
   const handleView = async (post) => {
     setActionLoading(true);
     try {
@@ -148,6 +192,7 @@ const PostSection = () => {
       setPosts((prev) => prev.filter((p) => p.id !== id));
       toast.success('Post deleted');
       setSelectedPost(null);
+      setQuery('post', null);
     } catch (err) {
       console.error('[posts] delete error', err);
       toast.error('Failed to delete post');
@@ -174,6 +219,7 @@ const PostSection = () => {
       else if (Array.isArray(res?.data?.data)) list = res.data.data;
       setPosts(list.map(mapPost));
       setSelectedPost(null);
+      setQuery('post', null);
     } catch (err) {
       console.error('[posts] moderate error', err);
       toast.error('Failed to moderate post');
@@ -255,9 +301,9 @@ const PostSection = () => {
                   <tr>
                     <td colSpan="5" className="px-6 py-12 text-center text-[var(--color-text-secondary)]">Loading posts...</td>
                   </tr>
-                ) : filteredPosts.length > 0 ? (
-                  filteredPosts.map((post) => (
-                    <tr key={post.id} className="hover:bg-[var(--color-bg-tertiary)] transition-colors">
+                ) : paginatedPosts.length > 0 ? (
+                  paginatedPosts.map((post) => (
+                    <tr key={post.id} className="hover:bg-[var(--color-bg-tertiary)] transition-colors cursor-pointer" onClick={() => handleView(post)}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {post.media && post.media.length > 0 && (
@@ -293,14 +339,14 @@ const PostSection = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <button
-                            onClick={() => handleView(post)}
+                            onClick={(e) => { e.stopPropagation(); handleView(post); setQuery('post', post.id); }}
                             className="text-blue-500 hover:text-blue-700 p-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30"
                             title="View Post"
                           >
                             <FiEye className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(post.id)}
+                            onClick={(e) => { e.stopPropagation(); handleDelete(post.id); }}
                             className="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"
                             title="Delete Post"
                           >
@@ -323,6 +369,34 @@ const PostSection = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-3 bg-[var(--color-bg-secondary)] border-t border-[var(--color-bg-tertiary)] flex items-center justify-between">
+              <div className="text-sm text-[var(--color-text-secondary)]">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredPosts.length)} of {filteredPosts.length} posts
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-bg-primary)]"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-[var(--color-text-primary)]">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-bg-primary)]"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* View Modal */}
@@ -331,7 +405,7 @@ const PostSection = () => {
             <div className="bg-[var(--color-bg-secondary)] rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
               <div className="px-6 py-4 border-b border-[var(--color-bg-tertiary)] flex justify-between items-center">
                 <h3 className="text-lg font-medium text-[var(--color-text-primary)]">Post by @{selectedPost.author}</h3>
-                <button onClick={() => setSelectedPost(null)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">✕</button>
+                <button onClick={() => { setSelectedPost(null); setQuery('post', null); }} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">✕</button>
               </div>
 
               <div className="p-6 overflow-y-auto flex-grow space-y-4">
@@ -359,7 +433,7 @@ const PostSection = () => {
               </div>
 
               <div className="px-6 py-4 border-t border-[var(--color-bg-tertiary)] flex justify-end gap-3">
-                <button onClick={() => setSelectedPost(null)} className="px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-bg-tertiary)]">Close</button>
+                <button onClick={() => { setSelectedPost(null); setQuery('post', null); }} className="px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-bg-tertiary)]">Close</button>
                 <button onClick={() => handleModerate(selectedPost.id, 'approve')} disabled={actionLoading} className="px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg">Approve</button>
                 <button onClick={() => handleModerate(selectedPost.id, 'reject')} disabled={actionLoading} className="px-4 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-lg">Reject</button>
                 <button onClick={() => { handleDelete(selectedPost.id); }} className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg">Delete Post</button>

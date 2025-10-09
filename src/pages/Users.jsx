@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { FiEye, FiEdit2, FiSlash, FiTrash2, FiLock, FiCheck, FiMoreVertical, FiUser, FiCopy } from 'react-icons/fi';
 import Modal from '../components/Modal';
 import UserModal from '../components/UserModal';
@@ -16,6 +16,8 @@ export default function Users() {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Helpers to normalize backend user objects into the UI shape
   const toShape = (u) => {
@@ -117,6 +119,24 @@ export default function Users() {
         }
 
         setUsers(list.length ? list.map(toShape) : mockUsers.map(toShape));
+
+        // Experiment: Fetch user growth and subscription revenue endpoints
+        try {
+          console.log('🔄 Experiment: Fetching /admin/user-growth...');
+          const userGrowthResponse = await adminApi.getUserGrowth();
+          console.log('✅ User growth response:', userGrowthResponse);
+        } catch (growthErr) {
+          console.error('❌ User growth fetch error:', growthErr);
+        }
+
+        try {
+          console.log('🔄 Experiment: Fetching /admin/subscription-revenue...');
+          const subscriptionRevenueResponse = await adminApi.getSubscriptionRevenue();
+          console.log('✅ Subscription revenue response:', subscriptionRevenueResponse);
+        } catch (revenueErr) {
+          console.error('❌ Subscription revenue fetch error:', revenueErr);
+        }
+
       } catch (err) {
         console.error('[users] fetch error', err);
         setUsers(mockUsers);
@@ -260,6 +280,27 @@ export default function Users() {
     return () => { try { delete window.__unverifyTemp; } catch {} };
   }, []);
 
+  const filteredUsers = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => {
+      return (
+        (u.id || '').toLowerCase().includes(q) ||
+        (u.username || '').toLowerCase().includes(q) ||
+        (u.fullName || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.subscriptionPlan || '').toLowerCase().includes(q)
+      );
+    });
+  }, [users, query]);
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredUsers, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
   return (
     <div className="p-8 bg-[var(--color-bg-primary)] min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-[var(--color-text-primary)]">User Management</h2>
@@ -299,20 +340,8 @@ export default function Users() {
             </tr>
           </thead>
           <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-bg-tertiary)]">
-            {users
-              .filter((u) => {
-                const q = query.trim().toLowerCase();
-                if (!q) return true;
-                return (
-                  (u.id || '').toLowerCase().includes(q) ||
-                  (u.username || '').toLowerCase().includes(q) ||
-                  (u.fullName || '').toLowerCase().includes(q) ||
-                  (u.email || '').toLowerCase().includes(q) ||
-                  (u.subscriptionPlan || '').toLowerCase().includes(q)
-                );
-              })
-              .map((user) => (
-              <tr key={user.id} className="hover:bg-[var(--color-bg-tertiary)] transition-colors">
+            {paginatedUsers.map((user) => (
+              <tr key={user.id} className="hover:bg-[var(--color-bg-tertiary)] transition-colors cursor-pointer" onClick={() => handleView(user)}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-primary)]">
                   <div className="flex items-center gap-2">
                     <div className="font-mono">{truncateMiddle(user.id)}</div>
@@ -343,9 +372,8 @@ export default function Users() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-secondary)]">{user.email}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    user.subscriptionPlan === 'Premium' ? 'bg-[var(--color-accent-green)] text-white' : 
-                    user.subscriptionPlan === 'Basic' ? 'bg-[var(--color-accent-yellow)] text-white' :
-                    'bg-[var(--color-accent-blue)] text-white'
+                    user.subscriptionPlan === 'Free' ? 'bg-[var(--color-accent-blue)] text-white' :
+                    'bg-[var(--color-accent-green)] text-white'
                   }`}>
                     {user.subscriptionPlan}
                   </span>
@@ -364,8 +392,8 @@ export default function Users() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-secondary)]">{user.dateJoined}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="relative">
-                    <button 
-                      onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)} 
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === user.id ? null : user.id); }}
                       className="p-1 rounded-full hover:bg-[var(--color-bg-tertiary)] transition-all duration-200 transform hover:scale-110"
                     >
                       <FiMoreVertical className="w-5 h-5 text-[var(--color-text-secondary)]" />
@@ -427,6 +455,34 @@ export default function Users() {
             ))}
           </tbody>
         </table>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-4 py-3 bg-[var(--color-bg-secondary)] border-t border-[var(--color-bg-tertiary)] flex items-center justify-between">
+            <div className="text-sm text-[var(--color-text-secondary)]">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredUsers.length)} of {filteredUsers.length} users
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-bg-primary)]"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-[var(--color-text-primary)]">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-bg-primary)]"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       {/* User modal is now a separate component which reads ?user=<id> from the URL */}
       <UserModal />
@@ -468,9 +524,14 @@ export default function Users() {
             <div>
               <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Subscription Plan</label>
               <select name="subscriptionPlan" defaultValue={editUser.subscriptionPlan} className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="Basic">Basic</option>
-                <option value="Premium">Premium</option>
                 <option value="Free">Free</option>
+                <option value="Orbit">Orbit</option>
+                <option value="Starlight">Starlight</option>
+                <option value="Nova">Nova</option>
+                <option value="Equinox">Equinox</option>
+                <option value="Polaris">Polaris</option>
+                <option value="Orion">Orion</option>
+                <option value="Cosmos">Cosmos</option>
               </select>
             </div>
             <div>

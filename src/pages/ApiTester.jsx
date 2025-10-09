@@ -52,6 +52,25 @@ const ApiTester = () => {
     { name: 'getDashboardStatistics', method: () => adminApi.getDashboardStatistics() },
     { name: 'getDashboardReportsDaily', method: () => adminApi.getDashboardReportsDaily() },
     { name: 'getDashboardReportsMonthly', method: () => adminApi.getDashboardReportsMonthly() },
+
+    // Detailed reports endpoints
+    { name: 'getUsersReportsDaily', method: () => adminApi.getUsersReportsDaily({ date: new Date().toISOString().split('T')[0] }) },
+    { name: 'getTransactionReportsDaily', method: () => adminApi.getTransactionReportsDaily({ date: new Date().toISOString().split('T')[0] }) },
+    { name: 'getDepositsReportsDaily', method: () => adminApi.getDepositsReportsDaily({ date: new Date().toISOString().split('T')[0] }) },
+    { name: 'getWithdrawalsReportsDaily', method: () => adminApi.getWithdrawalsReportsDaily({ date: new Date().toISOString().split('T')[0] }) },
+    { name: 'getPostReportDaily', method: () => adminApi.getPostReportDaily({ date: new Date().toISOString().split('T')[0] }) },
+    { name: 'getAffiliateReportDaily', method: () => adminApi.getAffiliateReportDaily({ date: new Date().toISOString().split('T')[0] }) },
+
+    // Admin management endpoints
+    { name: 'getAdmins', method: () => adminApi.getAdmins() },
+    { name: 'createAdmin', method: () => adminApi.createAdmin({
+      firstName: 'Test',
+      lastName: 'Admin',
+      email: 'test.admin@example.com',
+      password: 'testpassword123',
+      role: 'Moderator'
+    }) },
+    { name: 'updateAdmin', method: () => adminApi.updateAdmin('test-admin-id', { role: 'Super Admin' }), skip: true },
   ];
 
   const runAllTests = async () => {
