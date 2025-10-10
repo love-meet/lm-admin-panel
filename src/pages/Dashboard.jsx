@@ -69,26 +69,31 @@ const Dashboard = () => {
         // FIXED: Process user growth data based on your actual API response
         console.log('🔄 Fetching user growth data...');
         try {
-          const userGrowthResponse = await adminApi.getUserGrowth();
-          console.log('✅ User growth response:', userGrowthResponse);
-          
-          if (userGrowthResponse && userGrowthResponse.success) {
-            // Based on your console: {success: true, data: Array(1)} with {_id: null, totalUsers: $}
-            if (Array.isArray(userGrowthResponse.data)) {
-              // Process the actual data structure from your API
-              const processedData = userGrowthResponse.data.map(item => {
-                // Handle the structure: {_id: null, totalUsers: $}
-                return {
-                  month: item._id || 'All Time',
-                  count: item.totalUsers || 0
-                };
-              });
-              setUserGrowthApiData(processedData);
+          // Calculate date range for user growth (last 30 days) - using UTC
+          const now = new Date();
+          const endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+          const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30));
+
+          const userGrowthResponse = await adminApi.getUserGrowth({
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0]
+          });
+          console.log('✅ Raw user growth response:', userGrowthResponse);
+
+          // FIXED: Access the nested data structure
+          if (userGrowthResponse && userGrowthResponse.data && userGrowthResponse.data.userGrowth) {
+            // Your API returns: {data: {userGrowth: Array(1), dateRange: {...}, interval: 'day'}}
+            if (Array.isArray(userGrowthResponse.data.userGrowth) && userGrowthResponse.data.userGrowth.length > 0) {
+              console.log('✅ User growth data found:', userGrowthResponse.data.userGrowth);
+
+              // Use the data directly from the API - no transformation needed
+              setUserGrowthApiData(userGrowthResponse.data.userGrowth);
             } else {
-              console.warn('User growth data is not an array:', userGrowthResponse.data);
+              console.warn('⚠️ User growth data is empty array:', userGrowthResponse.data.userGrowth);
               setUserGrowthApiData([]);
             }
           } else {
+            console.warn('⚠️ No userGrowth property in response:', userGrowthResponse);
             setUserGrowthApiData([]);
           }
         } catch (growthErr) {
@@ -365,95 +370,201 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* User Growth Over Time */}
-          <div className="bg-[var(--color-bg-secondary)] rounded-xl shadow-lg p-4 md:p-6">
-            <h2 className="text-lg md:text-xl font-semibold text-[var(--color-text-primary)] mb-4">
-              User Growth Over Time
-            </h2>
-            <div className="h-80">
-              <Line
-                data={userGrowthData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      labels: { color: 'var(--color-text-primary)' },
-                    },
-                    tooltip: {
-                      backgroundColor: 'var(--color-bg-secondary)',
-                      titleColor: 'var(--color-text-primary)',
-                      bodyColor: 'var(--color-text-primary)',
-                      borderColor: 'var(--color-bg-tertiary)',
-                    },
-                  },
-                  scales: {
-                    x: {
-                      ticks: { color: 'var(--color-text-secondary)' },
-                      grid: { color: 'var(--color-bg-tertiary)' },
-                    },
-                    y: {
-                      ticks: { color: 'var(--color-text-secondary)' },
-                      grid: { color: 'var(--color-bg-tertiary)' },
-                    },
-                  },
-                }}
-              />
-              <div className="mt-2 text-sm text-[var(--color-text-secondary)] text-center">
-                {userGrowthApiData.length > 0 ? 'Live API Data' : 'Sample Data'}
-              </div>
-            </div>
-          </div>
+     {/* Charts Section */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+ {/* User Growth Over Time */}
+<div className="bg-[var(--color-bg-secondary)] rounded-xl shadow-lg p-4 md:p-6">
+  <h2 className="text-lg md:text-xl font-semibold text-white mb-4">
+    User Growth Over Time
+  </h2>
 
-          {/* Revenue by Subscription Plan */}
-          <div className="bg-[var(--color-bg-secondary)] rounded-xl shadow-lg p-4 md:p-6">
-            <h2 className="text-lg md:text-xl font-semibold text-[var(--color-text-primary)] mb-4">
-              Revenue by Subscription Plan
-            </h2>
-            <div className="h-80">
-              <Bar
-                data={revenueByPlanData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      display: false,
-                    },
-                    tooltip: {
-                      backgroundColor: 'var(--color-bg-secondary)',
-                      titleColor: 'var(--color-text-primary)',
-                      bodyColor: 'var(--color-text-primary)',
-                      borderColor: 'var(--color-bg-tertiary)',
-                    },
-                  },
-                  scales: {
-                    x: {
-                      ticks: { 
-                        color: 'var(--color-text-secondary)',
-                        maxRotation: 45,
-                        minRotation: 45
-                      },
-                      grid: { color: 'var(--color-bg-tertiary)' },
-                    },
-                    y: {
-                      ticks: {
-                        color: 'var(--color-text-secondary)',
-                        callback: (value) => `$${value.toLocaleString()}`,
-                      },
-                      grid: { color: 'var(--color-bg-tertiary)' },
-                    },
-                  },
-                }}
-              />
-              <div className="mt-2 text-sm text-[var(--color-text-secondary)] text-center">
-                {subscriptionRevenueApiData.length > 0 ? 'Live API Data' : 'Sample Data'}
-              </div>
-            </div>
-          </div>
-        </div>
+  <div className="h-80">
+    <Line
+      data={{
+        labels: userGrowthApiData.length
+          ? userGrowthApiData.map((d) => 
+              new Date(d.date).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+              })
+            )
+          : ['Sep 10', 'Sep 15', 'Sep 20', 'Sep 25', 'Sep 30', 'Oct 5', 'Oct 8'],
+        datasets: [
+          {
+            label: 'Total Users',
+            data: userGrowthApiData.length
+              ? userGrowthApiData.map((d) => d.cumulativeTotal || d.totalUsers || 0)
+              : [0, 0, 1, 1, 1, 1, 2],
+            borderColor: '#60a5fa',
+            backgroundColor: 'rgba(96, 165, 250, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 8,
+            pointBackgroundColor: '#60a5fa',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+          },
+          {
+            label: 'New Users',
+            data: userGrowthApiData.length
+              ? userGrowthApiData.map((d) => d.newUsers || 0)
+              : [0, 0, 1, 0, 0, 0, 1],
+            borderColor: '#34d399',
+            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 8,
+            pointBackgroundColor: '#34d399',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+          }
+        ],
+      }}
+      options={{
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: { 
+              color: '#ffffff',
+              usePointStyle: true,
+              padding: 20,
+            },
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+            borderColor: 'rgba(255,255,255,0.2)',
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                if (context.parsed.y !== null) {
+                  label += context.parsed.y.toLocaleString();
+                }
+                return label;
+              }
+            }
+          },
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index',
+        },
+        scales: {
+          x: {
+            ticks: { 
+              color: '#ffffff',
+              maxRotation: 45,
+            },
+            grid: { 
+              color: 'rgba(255,255,255,0.1)',
+              drawBorder: false,
+            },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#ffffff',
+              callback: (value) => value.toLocaleString(),
+            },
+            grid: { 
+              color: 'rgba(255,255,255,0.1)',
+              drawBorder: false,
+            },
+          },
+        },
+      }}
+    />
+    <div className="mt-4 flex flex-col items-center text-sm text-gray-300">
+      {userGrowthApiData.length > 0 ? (
+        <>
+          <span>Live API Data • Date Range: {userGrowthApiData[0]?.date || 'N/A'} to {userGrowthApiData[userGrowthApiData.length - 1]?.date || 'N/A'}</span>
+          <span className="text-xs text-gray-400 mt-1">
+            Total Users: {userGrowthApiData.reduce((max, item) => Math.max(max, item.cumulativeTotal || 0), 0).toLocaleString()} • 
+            New Users: {userGrowthApiData.reduce((sum, item) => sum + (item.newUsers || 0), 0).toLocaleString()}
+          </span>
+        </>
+      ) : (
+        <span>Sample Data • No API data available</span>
+      )}
+    </div>
+  </div>
+</div>
+
+  {/* Revenue by Subscription Plan */}
+  <div className="bg-[var(--color-bg-secondary)] rounded-xl shadow-lg p-4 md:p-6">
+    <h2 className="text-lg md:text-xl font-semibold text-white mb-4">
+      Revenue by Subscription Plan
+    </h2>
+
+    <div className="h-80">
+      <Bar
+        data={{
+          labels: subscriptionRevenueApiData.length
+            ? subscriptionRevenueApiData.map((d) => d.planName)
+            : ['Basic', 'Pro', 'Premium', 'Enterprise'],
+          datasets: [
+            {
+              label: 'Revenue ($)',
+              data: subscriptionRevenueApiData.length
+                ? subscriptionRevenueApiData.map((d) => d.revenue)
+                : [1200, 3500, 5400, 7200],
+              backgroundColor: ['#60a5fa', '#34d399', '#fbbf24', '#f87171'],
+              borderRadius: 6,
+              barThickness: 40,
+            },
+          ],
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: '#ffffff',
+              bodyColor: '#ffffff',
+              borderColor: 'rgba(255,255,255,0.2)',
+              borderWidth: 1,
+              callbacks: {
+                label: (context) => `$${context.parsed.y.toLocaleString()}`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: '#ffffff',
+                maxRotation: 45,
+                minRotation: 45,
+              },
+              grid: { color: 'rgba(255,255,255,0.1)' },
+            },
+            y: {
+              ticks: {
+                color: '#ffffff',
+                callback: (value) => `$${value.toLocaleString()}`,
+              },
+              grid: { color: 'rgba(255,255,255,0.1)' },
+            },
+          },
+        }}
+      />
+      <div className="mt-2 text-sm text-gray-300 text-center">
+        {subscriptionRevenueApiData.length > 0 ? 'Live API Data' : 'Sample Data'}
+      </div>
+    </div>
+  </div>
+</div>
+
+
       </div>
     </div>
   );

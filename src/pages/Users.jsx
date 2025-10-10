@@ -18,6 +18,9 @@ export default function Users() {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [sortBy, setSortBy] = useState('newest');
+  const [planFilter, setPlanFilter] = useState('all');
+  const [verifiedFilter, setVerifiedFilter] = useState('all');
 
   // Helpers to normalize backend user objects into the UI shape
   const toShape = (u) => {
@@ -48,6 +51,7 @@ export default function Users() {
       isDisabled: u.isDisabled || false,
       verified: !!verifiedFlag,
       dateJoined: u.dateJoined ? new Date(u.dateJoined).toLocaleDateString() : (u.dateJoinedString || ''),
+      rawDateJoined: u.dateJoined ? new Date(u.dateJoined) : null,
       raw: u,
     };
   };
@@ -280,38 +284,88 @@ export default function Users() {
     return () => { try { delete window.__unverifyTemp; } catch {} };
   }, []);
 
-  const filteredUsers = useMemo(() => {
+  const filteredAndSortedUsers = useMemo(() => {
+    let filtered = users;
     const q = query.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) => {
-      return (
-        (u.id || '').toLowerCase().includes(q) ||
-        (u.username || '').toLowerCase().includes(q) ||
-        (u.fullName || '').toLowerCase().includes(q) ||
-        (u.email || '').toLowerCase().includes(q) ||
-        (u.subscriptionPlan || '').toLowerCase().includes(q)
-      );
-    });
-  }, [users, query]);
+    if (q) {
+      filtered = filtered.filter((u) => {
+        return (
+          (u.id || '').toLowerCase().includes(q) ||
+          (u.username || '').toLowerCase().includes(q) ||
+          (u.fullName || '').toLowerCase().includes(q) ||
+          (u.email || '').toLowerCase().includes(q) ||
+          (u.subscriptionPlan || '').toLowerCase().includes(q)
+        );
+      });
+    }
+    if (planFilter !== 'all') {
+      filtered = filtered.filter((u) => u.subscriptionPlan === planFilter);
+    }
+    if (verifiedFilter === 'verified') {
+      filtered = filtered.filter((u) => u.verified);
+    } else if (verifiedFilter === 'unverified') {
+      filtered = filtered.filter((u) => !u.verified);
+    }
+    if (sortBy === 'newest') {
+      filtered = [...filtered].sort((a, b) => (b.rawDateJoined || 0) - (a.rawDateJoined || 0));
+    } else if (sortBy === 'oldest') {
+      filtered = [...filtered].sort((a, b) => (a.rawDateJoined || 0) - (b.rawDateJoined || 0));
+    }
+    return filtered;
+  }, [users, query, planFilter, verifiedFilter, sortBy]);
 
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUsers, currentPage, itemsPerPage]);
+    return filteredAndSortedUsers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAndSortedUsers, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredAndSortedUsers.length / itemsPerPage);
 
   return (
     <div className="p-8 bg-[var(--color-bg-primary)] min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-[var(--color-text-primary)]">User Management</h2>
       <div className="bg-[var(--color-bg-secondary)] rounded-lg shadow-md overflow-visible">
-        <div className="p-4 flex items-center justify-between">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search users..."
-            className="w-full sm:w-80 px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <div className="p-4">
+          <div className="flex items-center gap-4">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search users..."
+              className="w-full sm:w-80 px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+            </select>
+            <select
+              value={planFilter}
+              onChange={(e) => setPlanFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Plans</option>
+              <option value="Free">Free</option>
+              <option value="Orbit">Orbit</option>
+              <option value="Starlight">Starlight</option>
+              <option value="Nova">Nova</option>
+              <option value="Equinox">Equinox</option>
+              <option value="Polaris">Polaris</option>
+              <option value="Orion">Orion</option>
+              <option value="Cosmos">Cosmos</option>
+            </select>
+            <select
+              value={verifiedFilter}
+              onChange={(e) => setVerifiedFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Users</option>
+              <option value="verified">Verified</option>
+              <option value="unverified">Unverified</option>
+            </select>
+          </div>
         </div>
         <table className="min-w-full divide-y divide-[var(--color-bg-tertiary)]">
           <thead className="bg-[var(--color-bg-secondary)]">
@@ -458,29 +512,24 @@ export default function Users() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-4 py-3 bg-[var(--color-bg-secondary)] border-t border-[var(--color-bg-tertiary)] flex items-center justify-between">
-            <div className="text-sm text-[var(--color-text-secondary)]">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredUsers.length)} of {filteredUsers.length} users
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-bg-primary)]"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-[var(--color-text-primary)]">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-bg-primary)]"
-              >
-                Next
-              </button>
-            </div>
+          <div className="px-6 py-3 flex justify-between items-center border-t border-[var(--color-bg-tertiary)]">
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+              className="px-3 py-1 rounded bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-[var(--color-text-primary)]">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="px-3 py-1 rounded bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+            >
+              Next
+            </button>
           </div>
         )}
       </div>

@@ -90,14 +90,14 @@ export const AuthProvider = ({ children }) => {
 
   const login = async ({ email, password }) => {
     try {
-      const data = await api.post('/admin/login', { email, password });
-      console.log('[auth] login response data:', data);
-      let token = data?.token || data?.accessToken || null;
+      const {data} = await api.post('/admin/login', { email, password });
+      let token = data?.token;
       if (!token) {
         token = getCookieUtil('token') || null;
       }
       const adminObj = data?.admin || data?.user || { email };
       if (token) setCookieUtil('token', token);
+      console.log(data.admin)
       setAdmin(adminObj);
       return { ok: true };
     } catch (err) {

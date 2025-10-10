@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import adminApi from '../api/admin';
 import { toast } from 'sonner';
 import Modal from '../components/Modal';
+import UserGrowthChart from '../components/UserGrowthChart';
 
 // Helper to read URL params
 const readQuery = (key) => {
@@ -31,12 +32,22 @@ const setQuery = (key, value) => {
 const Reports = () => {
   const [reportsData, setReportsData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userGrowthData, setUserGrowthData] = useState(null);
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
   const [modalData, setModalData] = useState([]);
   const [modalTitle, setModalTitle] = useState('');
+  const [modalCurrentPage, setModalCurrentPage] = useState(1);
+  const modalItemsPerPage = 10;
+
+  const paginatedModalData = useMemo(() => {
+    const startIndex = (modalCurrentPage - 1) * modalItemsPerPage;
+    return modalData.slice(startIndex, startIndex + modalItemsPerPage);
+  }, [modalData, modalCurrentPage, modalItemsPerPage]);
+
+  const modalTotalPages = Math.ceil(modalData.length / modalItemsPerPage);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -59,6 +70,52 @@ const Reports = () => {
     };
 
     fetchReports();
+  }, []);
+
+  useEffect(() => {
+    // FIXED: Process user growth data based on your actual API response
+    console.log('🔄 Fetching user growth data...');
+    const fetchUserGrowth = async () => {
+      try {
+        // Calculate date range for user growth (last 30 days) - using UTC
+        const now = new Date();
+        const endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30));
+
+        const userGrowthResponse = await adminApi.getUserGrowth({
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0]
+        });
+        console.log('✅ Raw user growth response:', userGrowthResponse);
+
+        // FIXED: Access the nested data structure
+        if (userGrowthResponse && userGrowthResponse.data && userGrowthResponse.data.userGrowth) {
+          // Your API returns: {data: {userGrowth: Array(1), dateRange: {...}, interval: 'day'}}
+          if (Array.isArray(userGrowthResponse.data.userGrowth) && userGrowthResponse.data.userGrowth.length > 0) {
+            console.log('✅ User growth data found:', userGrowthResponse.data.userGrowth);
+
+            // Use the data directly from the API - no transformation needed
+            setUserGrowthData({
+              userGrowth: userGrowthResponse.data.userGrowth,
+              dateRange: userGrowthResponse.data.dateRange || { start: startDate.toISOString().split('T')[0], end: endDate.toISOString().split('T')[0] },
+              interval: userGrowthResponse.data.interval || 'day'
+            });
+          } else {
+            console.warn('⚠️ User growth data is empty array:', userGrowthResponse.data.userGrowth);
+            setUserGrowthData(null);
+          }
+        } else {
+          console.warn('⚠️ No userGrowth property in response:', userGrowthResponse);
+          setUserGrowthData(null);
+        }
+      } catch (growthErr) {
+        console.error('❌ User growth error:', growthErr.message);
+        toast.error('Failed to load user growth data');
+        setUserGrowthData(null);
+      }
+    };
+
+    fetchUserGrowth();
   }, []);
 
   // Check for URL params to restore modal state on refresh
@@ -129,6 +186,7 @@ const Reports = () => {
       }
 
       setModalData(data);
+      setModalCurrentPage(1);
       setModalOpen(true);
 
       // Set URL params to persist modal state
@@ -176,6 +234,7 @@ const Reports = () => {
             Daily reports overview
           </p>
         </div>
+
 
         {/* Loading State */}
         {loading && (
@@ -270,7 +329,7 @@ const Reports = () => {
           <div className="max-h-96 overflow-y-auto">
             {modalData.length > 0 ? (
               <div className="space-y-3">
-                {modalData.map((item, index) => (
+                {paginatedModalData.map((item, index) => (
                   <div key={item._id || item.id || item.userId || `${modalType}-${index}`} className="bg-[var(--color-bg-tertiary)] p-4 rounded-lg">
                     {modalType === 'posts' ? (
                       // Special rendering for posts
@@ -327,6 +386,29 @@ const Reports = () => {
                     )}
                   </div>
                 ))}
+
+                {/* Modal Pagination */}
+                {modalTotalPages > 1 && (
+                  <div className="mt-4 pt-4 border-t border-[var(--color-bg-tertiary)] flex justify-between items-center">
+                    <button
+                      disabled={modalCurrentPage <= 1}
+                      onClick={() => setModalCurrentPage((p) => p - 1)}
+                      className="px-3 py-1 rounded bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-sm text-[var(--color-text-primary)]">
+                      Page {modalCurrentPage} of {modalTotalPages}
+                    </span>
+                    <button
+                      disabled={modalCurrentPage >= modalTotalPages}
+                      onClick={() => setModalCurrentPage((p) => p + 1)}
+                      className="px-3 py-1 rounded bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8 text-[var(--color-text-secondary)]">

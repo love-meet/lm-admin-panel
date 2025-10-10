@@ -451,6 +451,28 @@ export const updateAdmin = async (adminId, body = {}) => {
   }
 };
 
+export const toggleAdminStatus = async (adminId, action) => {
+  try {
+    const res = await api.patch(`/admin/deactivate/activate/admin/${adminId}`, { action });
+    console.log('[adminApi] toggleAdminStatus', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] toggleAdminStatus error', err);
+    throw err;
+  }
+};
+
+export const deleteAdmin = async (adminId) => {
+  try {
+    const res = await api.delete(`/admin/delete-admin/${adminId}`);
+    console.log('[adminApi] deleteAdmin', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] deleteAdmin error', err);
+    throw err;
+  }
+};
+
 const adminApi = {
   getAllUsers,
   getUserById,
@@ -492,6 +514,8 @@ const adminApi = {
   getAdmins,
   createAdmin,
   updateAdmin,
+  toggleAdminStatus,
+  deleteAdmin,
 };
 
 export default adminApi;

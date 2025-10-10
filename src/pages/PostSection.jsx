@@ -372,29 +372,24 @@ const PostSection = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-6 py-3 bg-[var(--color-bg-secondary)] border-t border-[var(--color-bg-tertiary)] flex items-center justify-between">
-              <div className="text-sm text-[var(--color-text-secondary)]">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredPosts.length)} of {filteredPosts.length} posts
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-bg-primary)]"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-[var(--color-text-primary)]">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-bg-primary)]"
-                >
-                  Next
-                </button>
-              </div>
+            <div className="px-6 py-3 flex justify-between items-center border-t border-[var(--color-bg-tertiary)]">
+              <button
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+                className="px-3 py-1 rounded bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-[var(--color-text-primary)]">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className="px-3 py-1 rounded bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+              >
+                Next
+              </button>
             </div>
           )}
         </div>
@@ -434,8 +429,6 @@ const PostSection = () => {
 
               <div className="px-6 py-4 border-t border-[var(--color-bg-tertiary)] flex justify-end gap-3">
                 <button onClick={() => { setSelectedPost(null); setQuery('post', null); }} className="px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-bg-tertiary)]">Close</button>
-                <button onClick={() => handleModerate(selectedPost.id, 'approve')} disabled={actionLoading} className="px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg">Approve</button>
-                <button onClick={() => handleModerate(selectedPost.id, 'reject')} disabled={actionLoading} className="px-4 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-lg">Reject</button>
                 <button onClick={() => { handleDelete(selectedPost.id); }} className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg">Delete Post</button>
               </div>
             </div>
