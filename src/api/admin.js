@@ -431,7 +431,7 @@ export const getAdmins = async (params = {}) => {
 
 export const createAdmin = async (body = {}) => {
   try {
-    const res = await api.post('/admin/create-admins', body);
+    const res = await api.post('/admin/create-admin', body);
     console.log('[adminApi] createAdmin', res);
     return res;
   } catch (err) {
@@ -442,7 +442,7 @@ export const createAdmin = async (body = {}) => {
 
 export const updateAdmin = async (adminId, body = {}) => {
   try {
-    const res = await api.put(`/admin/update-admin/${adminId}`, body);
+    const res = await api.put(`/admin/update-admins/${adminId}`, body);
     console.log('[adminApi] updateAdmin', res);
     return res;
   } catch (err) {
@@ -469,6 +469,18 @@ export const deleteAdmin = async (adminId) => {
     return res;
   } catch (err) {
     console.error('[adminApi] deleteAdmin error', err);
+    throw err;
+  }
+};
+
+// Support Tickets
+export const deleteTicket = async (ticketId) => {
+  try {
+    const res = await api.delete(`/admin/tickets/${ticketId}`);
+    console.log('[adminApi] deleteTicket', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] deleteTicket error', err);
     throw err;
   }
 };
@@ -516,6 +528,7 @@ const adminApi = {
   updateAdmin,
   toggleAdminStatus,
   deleteAdmin,
+  deleteTicket,
 };
 
 export default adminApi;

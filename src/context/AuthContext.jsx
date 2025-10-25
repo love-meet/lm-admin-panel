@@ -150,6 +150,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Permission checking utility
+  const hasPermission = (permission) => {
+    if (!admin) return false;
+    // Super admin has all permissions
+    if (admin.role === 'super_admin') return true;
+    // Check if admin has the specific permission
+    return admin.permissions && admin.permissions.includes(permission);
+  };
+
+  const hasAnyPermission = (permissions) => {
+    if (!admin) return false;
+    // Super admin has all permissions
+    if (admin.role === 'super_admin') return true;
+    // Check if admin has any of the permissions
+    return permissions.some(permission => admin.permissions && admin.permissions.includes(permission));
+  };
+
   const value = useMemo(
     () => ({
       admin,
@@ -159,6 +176,8 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       fetchNotificationCount,
+      hasPermission,
+      hasAnyPermission,
     }),
     [admin, notifications, notificationsList]
   );

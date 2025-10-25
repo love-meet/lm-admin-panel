@@ -6,77 +6,44 @@ const ApiTester = () => {
   const [testResults, setTestResults] = useState({});
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-
-  const testEndpoints = [
-    // User endpoints
-    { name: 'getAllUsers', method: () => adminApi.getAllUsers() },
-    { name: 'getUserById', method: () => adminApi.getUserById('test-user-id'), skip: true }, // Needs valid ID
-    { name: 'updateUser', method: () => adminApi.updateUser('test-user-id', { name: 'Test' }), skip: true },
-    { name: 'deleteUser', method: () => adminApi.deleteUser('test-user-id'), skip: true },
-    { name: 'disableUser', method: () => adminApi.disableUser('test-user-id'), skip: true },
-    { name: 'enableUser', method: () => adminApi.enableUser('test-user-id'), skip: true },
-    { name: 'verifyUser', method: () => adminApi.verifyUser('test-user-id'), skip: true },
-    { name: 'unverifyUser', method: () => adminApi.unverifyUser('test-user-id'), skip: true },
-
-    // Notification endpoints
-    { name: 'getNotificationCount', method: () => adminApi.getNotificationCount('test-user-id'), skip: true },
-    { name: 'getNotificationsList', method: () => adminApi.getNotificationsList('test-user-id'), skip: true },
-
-    // Transaction endpoints
-    { name: 'getTransactions', method: () => adminApi.getTransactions() },
-    { name: 'getTransactionById', method: () => adminApi.getTransactionById('test-txn-id'), skip: true },
-    { name: 'refundTransaction', method: () => adminApi.refundTransaction('test-txn-id'), skip: true },
-
-    // Reports endpoints
-    { name: 'getReports', method: () => adminApi.getReports() },
-
-    // Posts endpoints
-    { name: 'getAllPosts', method: () => adminApi.getAllPosts() },
-    { name: 'getPostById', method: () => adminApi.getPostById('test-post-id'), skip: true },
-    { name: 'moderatePost', method: () => adminApi.moderatePost('test-post-id', { action: 'test' }), skip: true },
-    { name: 'deletePost', method: () => adminApi.deletePost('test-post-id'), skip: true },
-
-    // Stats endpoints
-    { name: 'getStats', method: () => adminApi.getStats() },
-    { name: 'getStatsList', method: () => adminApi.getStatsList('users') },
-
-    // Dashboard endpoints
-    { name: 'getDashboardTotalUsers', method: () => adminApi.getDashboardTotalUsers() },
-    { name: 'getDashboardPostsToday', method: () => adminApi.getDashboardPostsToday() },
-    { name: 'getDashboardNewSignups', method: () => adminApi.getDashboardNewSignups() },
-    { name: 'getDashboardUserGrowth', method: () => adminApi.getDashboardUserGrowth() },
-    { name: 'getDashboardSummary', method: () => adminApi.getDashboardSummary() },
-    { name: 'getDashboardSubscriptionRevenue', method: () => adminApi.getDashboardSubscriptionRevenue() },
-    { name: 'getUserGrowth', method: () => adminApi.getUserGrowth() },
-    { name: 'getSubscriptionRevenue', method: () => adminApi.getSubscriptionRevenue() },
-    { name: 'getDashboardStatistics', method: () => adminApi.getDashboardStatistics() },
-    { name: 'getDashboardReportsDaily', method: () => adminApi.getDashboardReportsDaily() },
-    { name: 'getDashboardReportsMonthly', method: () => adminApi.getDashboardReportsMonthly() },
-
-    // Detailed reports endpoints
-    { name: 'getUsersReportsDaily', method: () => adminApi.getUsersReportsDaily({ date: new Date().toISOString().split('T')[0] }) },
-    { name: 'getTransactionReportsDaily', method: () => adminApi.getTransactionReportsDaily({ date: new Date().toISOString().split('T')[0] }) },
-    { name: 'getDepositsReportsDaily', method: () => adminApi.getDepositsReportsDaily({ date: new Date().toISOString().split('T')[0] }) },
-    { name: 'getWithdrawalsReportsDaily', method: () => adminApi.getWithdrawalsReportsDaily({ date: new Date().toISOString().split('T')[0] }) },
-    { name: 'getPostReportDaily', method: () => adminApi.getPostReportDaily({ date: new Date().toISOString().split('T')[0] }) },
-    { name: 'getAffiliateReportDaily', method: () => adminApi.getAffiliateReportDaily({ date: new Date().toISOString().split('T')[0] }) },
-
-    // Admin management endpoints
-    { name: 'getAdmins', method: () => adminApi.getAdmins() },
-    { name: 'createAdmin', method: () => adminApi.createAdmin({
-      firstName: 'Test',
-      lastName: 'Admin',
-      email: 'test.admin@example.com',
-      password: 'testpassword123',
-      role: 'Moderator'
-    }) },
-    { name: 'updateAdmin', method: () => adminApi.updateAdmin('test-admin-id', { role: 'Super Admin' }), skip: true },
-  ];
+  const [testEndpoints, setTestEndpoints] = useState([
+    {
+      name: 'Update Admin',
+      method: () => adminApi.updateAdmin('507f1f77bcf86cd799439011', {
+        firstName: 'Test',
+        lastName: 'Admin',
+        username: 'testadmin',
+        email: 'test@example.com',
+        role: 'admin',
+        permissions: ['users_view']
+      }),
+      skip: false
+    }
+  ]);
 
   const runAllTests = async () => {
     setLoading(true);
     setTestResults({});
     setProgress(0);
+
+    // Load endpoints from API if not already loaded
+    if (testEndpoints.length === 0) {
+      try {
+        const endpointsResponse = await adminApi.getApiEndpoints();
+        if (endpointsResponse && endpointsResponse.data) {
+          setTestEndpoints(endpointsResponse.data);
+        } else {
+          toast.error('Failed to load API endpoints');
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to load endpoints:', err);
+        toast.error('Failed to load API endpoints');
+        setLoading(false);
+        return;
+      }
+    }
 
     const results = {};
     const executableEndpoints = testEndpoints.filter(endpoint => !endpoint.skip);
@@ -203,14 +170,57 @@ const ApiTester = () => {
               </span>
             </div>
 
-            {loading && (
-              <div className="w-64 bg-[var(--color-bg-tertiary)] rounded-full h-2">
-                <div
-                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-            )}
+            <div className="text-sm text-[var(--color-text-secondary)]">
+              {testEndpoints.length === 0 ? 'Loading endpoints...' : `${testEndpoints.length} endpoints loaded`}
+            </div>
+          </div>
+        </div>
+
+        {/* Load Endpoints Button */}
+        {testEndpoints.length === 0 && (
+          <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 mb-6">
+            <div className="text-center">
+              <button
+                onClick={async () => {
+                  try {
+                    const endpointsResponse = await adminApi.getApiEndpoints();
+                    if (endpointsResponse && endpointsResponse.data) {
+                      setTestEndpoints(endpointsResponse.data);
+                      toast.success('API endpoints loaded successfully');
+                    } else {
+                      toast.error('Failed to load API endpoints');
+                    }
+                  } catch (err) {
+                    console.error('Failed to load endpoints:', err);
+                    toast.error('Failed to load API endpoints');
+                  }
+                }}
+                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600"
+              >
+                Load API Endpoints
+              </button>
+              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                Click to load available API endpoints for testing
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Controls */}
+        <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 mb-6">
+          <div className="flex flex-wrap gap-4 items-center justify-between">
+            <div>
+              <button
+                onClick={runAllTests}
+                disabled={loading || testEndpoints.length === 0}
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? `Running Tests... ${Math.round(progress)}%` : 'Run All Tests'}
+              </button>
+              <span className="ml-4 text-sm text-[var(--color-text-secondary)]">
+                {testEndpoints.filter(ep => !ep.skip).length} testable endpoints
+              </span>
+            </div>
 
             <div className="text-sm text-[var(--color-text-secondary)]">
               {Object.values(testResults).filter(r => r.status === 'success').length} passed /{' '}

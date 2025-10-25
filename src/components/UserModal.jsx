@@ -109,6 +109,21 @@ export default function UserModal() {
           email: newUser.email || '',
           subscriptionPlan: newUser.subscriptionPlan || 'Free',
           verified: !!newUser.verified,
+          bio: newUser.raw?.bio || '',
+          city: newUser.raw?.city || '',
+          state: newUser.raw?.state || '',
+          country: newUser.raw?.country || '',
+          distance: newUser.raw?.distance || 50,
+          showDistance: newUser.raw?.showDistance ?? true,
+          showOnlineStatus: newUser.raw?.showOnlineStatus ?? true,
+          hobbies: Array.isArray(newUser.raw?.hobbies) ? newUser.raw.hobbies : [],
+          interests: Array.isArray(newUser.raw?.interests) ? newUser.raw.interests : [],
+          gender: newUser.raw?.gender || '',
+          dateOfBirth: newUser.raw?.dateOfBirth ? new Date(newUser.raw.dateOfBirth).toISOString().split('T')[0] : '',
+          ageRange: newUser.raw?.ageRange || { start: 18, end: 35 },
+          canWithdraw: newUser.raw?.canWithdraw ?? true,
+          isDisabled: newUser.raw?.isDisabled ?? false,
+          profileVerification: newUser.raw?.profileVerification ?? false,
         });
       } catch (err) {
         console.error('[user modal] fetch error', err);
@@ -142,18 +157,38 @@ export default function UserModal() {
 
   const onChange = (k, v) => setFormState((s) => ({ ...(s || {}), [k]: v }));
 
+  const onArrayChange = (k, v) => {
+    const arr = v.split(',').map(s => s.trim()).filter(s => s);
+    setFormState((s) => ({ ...(s || {}), [k]: arr }));
+  };
+
   const save = async () => {
     if (!userId || !formState) return;
     setLoading(true);
     try {
       const body = {
-        fullName: formState.fullName,
+        firstName: formState.fullName.split(' ')[0] || '',
+        lastName: formState.fullName.split(' ').slice(1).join(' ') || '',
         username: formState.username,
         email: formState.email,
         subscriptionPlan: formState.subscriptionPlan,
         // backend expects isVerified/profileVerification flags
         isVerified: !!formState.verified,
         profileVerification: !!formState.verified,
+        bio: formState.bio,
+        city: formState.city,
+        state: formState.state,
+        country: formState.country,
+        distance: formState.distance,
+        showDistance: formState.showDistance,
+        showOnlineStatus: formState.showOnlineStatus,
+        hobbies: formState.hobbies,
+        interests: formState.interests,
+        gender: formState.gender,
+        dateOfBirth: formState.dateOfBirth ? new Date(formState.dateOfBirth).toISOString() : null,
+        ageRange: formState.ageRange,
+        canWithdraw: formState.canWithdraw,
+        isDisabled: formState.isDisabled,
       };
       const res = await adminApi.updateUser(userId, body);
       const updated = res?.user || res?.data || res?.updatedUser || res;
@@ -196,6 +231,21 @@ export default function UserModal() {
           email: newUser.email || '',
           subscriptionPlan: newUser.subscriptionPlan || 'Free',
           verified: !!newUser.verified,
+          bio: newUser.raw?.bio || '',
+          city: newUser.raw?.city || '',
+          state: newUser.raw?.state || '',
+          country: newUser.raw?.country || '',
+          distance: newUser.raw?.distance || 50,
+          showDistance: newUser.raw?.showDistance ?? true,
+          showOnlineStatus: newUser.raw?.showOnlineStatus ?? true,
+          hobbies: Array.isArray(newUser.raw?.hobbies) ? newUser.raw.hobbies : [],
+          interests: Array.isArray(newUser.raw?.interests) ? newUser.raw.interests : [],
+          gender: newUser.raw?.gender || '',
+          dateOfBirth: newUser.raw?.dateOfBirth ? new Date(newUser.raw.dateOfBirth).toISOString().split('T')[0] : '',
+          ageRange: newUser.raw?.ageRange || { start: 18, end: 35 },
+          canWithdraw: newUser.raw?.canWithdraw ?? true,
+          isDisabled: newUser.raw?.isDisabled ?? false,
+          profileVerification: newUser.raw?.profileVerification ?? false,
         });
         setEditing(false);
       } else {
@@ -263,7 +313,7 @@ export default function UserModal() {
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-4 gap-4">
             <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
               <div className="text-xs text-[var(--color-text-secondary)]">User ID</div>
               <div className="flex items-center gap-2">
@@ -301,36 +351,118 @@ export default function UserModal() {
                 </div>
               )}
             </div>
+            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
+              <div className="text-xs text-[var(--color-text-secondary)]">Active</div>
+              <div className="text-[var(--color-text-primary)]">{user.raw?.active !== false ? 'Yes' : 'No'}</div>
+            </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
             <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
               <div className="text-xs text-[var(--color-text-secondary)]">Full Name</div>
-              <div className="text-[var(--color-text-primary)]">{user.fullName}</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.fullName}</div>
+              ) : (
+                <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.fullName || ''} onChange={(e) => onChange('fullName', e.target.value)} />
+              )}
               <div className="text-xs text-[var(--color-text-secondary)] mt-2">Username</div>
-              <div className="text-[var(--color-text-primary)]">{user.username || user.raw?.username}</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.username || user.raw?.username}</div>
+              ) : (
+                <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.username || ''} onChange={(e) => onChange('username', e.target.value)} />
+              )}
               <div className="text-xs text-[var(--color-text-secondary)] mt-2">Referral Code</div>
               <div className="text-[var(--color-text-primary)]">{user.raw?.referralCode || ''}</div>
+              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Gender</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.raw?.gender || ''}</div>
+              ) : (
+                <select className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.gender || ''} onChange={(e) => onChange('gender', e.target.value)}>
+                  <option value="">Select Gender</option>
+                  <option value="Man">Man</option>
+                  <option value="Woman">Woman</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Other">Other</option>
+                </select>
+              )}
             </div>
 
             <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
               <div className="text-xs text-[var(--color-text-secondary)]">Location</div>
-              <div className="text-[var(--color-text-primary)]">{[user.raw?.city, user.raw?.state, user.raw?.country].filter(Boolean).join(', ')}</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{[user.raw?.city, user.raw?.state, user.raw?.country].filter(Boolean).join(', ')}</div>
+              ) : (
+                <div className="space-y-1">
+                  <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="City" value={formState?.city || ''} onChange={(e) => onChange('city', e.target.value)} />
+                  <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="State" value={formState?.state || ''} onChange={(e) => onChange('state', e.target.value)} />
+                  <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="Country" value={formState?.country || ''} onChange={(e) => onChange('country', e.target.value)} />
+                </div>
+              )}
               <div className="text-xs text-[var(--color-text-secondary)] mt-2">Distance</div>
-              <div className="text-[var(--color-text-primary)]">{user.raw?.distance ?? ''} km</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.raw?.distance ?? ''} km</div>
+              ) : (
+                <input type="number" className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.distance || 50} onChange={(e) => onChange('distance', parseInt(e.target.value))} />
+              )}
               <div className="text-xs text-[var(--color-text-secondary)] mt-2">Show Distance / Online</div>
-              <div className="text-[var(--color-text-primary)]">{user.raw?.showDistance ? 'Yes' : 'No'} / {user.raw?.showOnlineStatus ? 'Yes' : 'No'}</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.raw?.showDistance ? 'Yes' : 'No'} / {user.raw?.showOnlineStatus ? 'Yes' : 'No'}</div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm">Distance</label>
+                  <input type="checkbox" checked={!!formState?.showDistance} onChange={(e) => onChange('showDistance', e.target.checked)} />
+                  <label className="text-sm">Online</label>
+                  <input type="checkbox" checked={!!formState?.showOnlineStatus} onChange={(e) => onChange('showOnlineStatus', e.target.checked)} />
+                </div>
+              )}
+            </div>
+
+            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
+              <div className="text-xs text-[var(--color-text-secondary)]">Date of Birth</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.raw?.dateOfBirth ? new Date(user.raw.dateOfBirth).toLocaleDateString() : ''}</div>
+              ) : (
+                <input type="date" className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.dateOfBirth || ''} onChange={(e) => onChange('dateOfBirth', e.target.value)} />
+              )}
+              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Age Range</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.raw?.ageRange ? `${user.raw.ageRange.start}-${user.raw.ageRange.end}` : ''}</div>
+              ) : (
+                <div className="flex gap-1">
+                  <input type="number" placeholder="Min" className="w-16 px-2 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.ageRange?.start || 18} onChange={(e) => onChange('ageRange', { ...formState.ageRange, start: parseInt(e.target.value) })} />
+                  <span className="text-[var(--color-text-primary)]">-</span>
+                  <input type="number" placeholder="Max" className="w-16 px-2 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.ageRange?.end || 35} onChange={(e) => onChange('ageRange', { ...formState.ageRange, end: parseInt(e.target.value) })} />
+                </div>
+              )}
+              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Can Withdraw</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.raw?.canWithdraw ? 'Yes' : 'No'}</div>
+              ) : (
+                <input type="checkbox" checked={!!formState?.canWithdraw} onChange={(e) => onChange('canWithdraw', e.target.checked)} />
+              )}
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
             <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
               <div className="text-xs text-[var(--color-text-secondary)]">Bio</div>
-              <div className="text-[var(--color-text-primary)]">{user.raw?.bio || ''}</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.raw?.bio || ''}</div>
+              ) : (
+                <textarea className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" rows="3" value={formState?.bio || ''} onChange={(e) => onChange('bio', e.target.value)} />
+              )}
               <div className="text-xs text-[var(--color-text-secondary)] mt-2">Hobbies</div>
-              <div className="text-[var(--color-text-primary)]">{Array.isArray(user.raw?.hobbies) ? user.raw.hobbies.join(', ') : ''}</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{Array.isArray(user.raw?.hobbies) ? user.raw.hobbies.join(', ') : ''}</div>
+              ) : (
+                <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="Comma separated" value={formState?.hobbies?.join(', ') || ''} onChange={(e) => onArrayChange('hobbies', e.target.value)} />
+              )}
               <div className="text-xs text-[var(--color-text-secondary)] mt-2">Interests</div>
-              <div className="text-[var(--color-text-primary)]">{Array.isArray(user.raw?.interests) ? user.raw.interests.join(', ') : ''}</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{Array.isArray(user.raw?.interests) ? user.raw.interests.join(', ') : ''}</div>
+              ) : (
+                <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="Comma separated" value={formState?.interests?.join(', ') || ''} onChange={(e) => onArrayChange('interests', e.target.value)} />
+              )}
             </div>
 
             <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
@@ -339,7 +471,26 @@ export default function UserModal() {
               <div className="text-xs text-[var(--color-text-secondary)] mt-2">Blocked Users</div>
               <div className="text-[var(--color-text-primary)]">{Array.isArray(user.raw?.blockedUsers) ? user.raw.blockedUsers.join(', ') : ''}</div>
               <div className="text-xs text-[var(--color-text-secondary)] mt-2">Profile Verification</div>
-              <div className="text-[var(--color-text-primary)]">{user.raw?.profileVerification ? 'Yes' : 'No'}</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.raw?.profileVerification ? 'Yes' : 'No'}</div>
+              ) : (
+                <input type="checkbox" checked={!!formState?.profileVerification} onChange={(e) => onChange('profileVerification', e.target.checked)} />
+              )}
+              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Disabled</div>
+              {!editing ? (
+                <div className="text-[var(--color-text-primary)]">{user.raw?.isDisabled ? 'Yes' : 'No'}</div>
+              ) : (
+                <input type="checkbox" checked={!!formState?.isDisabled} onChange={(e) => onChange('isDisabled', e.target.checked)} />
+              )}
+            </div>
+
+            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
+              <div className="text-xs text-[var(--color-text-secondary)]">Created At</div>
+              <div className="text-[var(--color-text-primary)]">{user.raw?.createdAt ? new Date(user.raw.createdAt).toLocaleString() : ''}</div>
+              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Updated At</div>
+              <div className="text-[var(--color-text-primary)]">{user.raw?.updatedAt ? new Date(user.raw.updatedAt).toLocaleString() : ''}</div>
+              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Date Joined</div>
+              <div className="text-[var(--color-text-primary)]">{user.raw?.dateJoined ? new Date(user.raw.dateJoined).toLocaleString() : ''}</div>
             </div>
           </div>
         </div>

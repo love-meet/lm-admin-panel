@@ -6,12 +6,14 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     const res = await login({ email, password });
     if (res.ok) {
@@ -19,6 +21,7 @@ const Login = () => {
     } else {
       setError(res.error || 'Login failed.');
     }
+    setIsLoading(false);
   };
 
   return (
@@ -53,9 +56,20 @@ const Login = () => {
           {error && <p className="text-sm text-[var(--color-accent-red)]">{error}</p>}
           <button
             type="submit"
-            className="w-full px-4 py-2 text-sm font-medium text-white bg-[var(--color-primary-purple)] rounded-md hover:bg-opacity-80 transition-all focus:outline-none focus:ring focus:ring-[var(--color-primary-purple)]"
+            disabled={isLoading}
+            className="w-full px-4 py-2 text-sm font-medium text-white bg-[var(--color-primary-purple)] rounded-md hover:bg-opacity-80 transition-all focus:outline-none focus:ring focus:ring-[var(--color-primary-purple)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Log In
+            {isLoading ? (
+              <div className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Logging in...
+              </div>
+            ) : (
+              'Log In'
+            )}
           </button>
         </form>
       </div>

@@ -1,34 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { FiShield, FiUserX, FiTrash2, FiUserCheck } from 'react-icons/fi';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { FiShield, FiUserX, FiTrash2, FiUserCheck, FiEye } from 'react-icons/fi';
 import Modal from '../components/Modal';
 import adminApi from '../api/admin';
 import { toast } from 'sonner';
 
-const mockAdmins = [
-  {
-    id: 'ADM001',
-    name: 'Jane Doe',
-    email: 'jane.d@example.com',
-    role: 'super_admin',
-    lastLogin: '2023-09-22',
-    status: 'Active',
-  },
-  {
-    id: 'ADM002',
-    name: 'John Smith',
-    email: 'john.s@example.com',
-    role: 'moderator',
-    lastLogin: '2023-09-21',
-    status: 'Active',
-  },
-];
 
 const formatRole = (role) => {
   const roleMap = {
     'super_admin': 'Super Admin',
-    'admin': 'Admin',
-    'moderator': 'Moderator',
-    'support': 'Support'
+    'admin': 'Admin'
   };
   return roleMap[role] || role;
 };
@@ -39,8 +19,10 @@ export default function Admins() {
    const [createOpen, setCreateOpen] = useState(false);
    const [roleModal, setRoleModal] = useState(null); // admin
    const [confirm, setConfirm] = useState(null); // { admin }
+   const [viewAdmin, setViewAdmin] = useState(null);
    const [currentPage, setCurrentPage] = useState(1);
    const itemsPerPage = 10;
+   const [updateLoading, setUpdateLoading] = useState(false);
 
   // Fetch admins from API
   useEffect(() => {
@@ -66,17 +48,18 @@ export default function Admins() {
         const processedList = list.length ? list.map(admin => ({
           ...admin,
           status: admin.status || 'Active'
-        })) : mockAdmins;
+        })) : [];
         setAdmins(processedList);
       } catch (err) {
         console.error('[admins] fetch error', err);
-        setAdmins(mockAdmins);
+        setAdmins([]);
       } finally {
         setLoading(false);
       }
     };
     loadAdmins();
   }, []);
+
 
   const paginatedAdmins = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -86,20 +69,21 @@ export default function Admins() {
   const totalPages = Math.ceil(admins.length / itemsPerPage);
 
   const handleAction = (action, admin) => {
+    if (action === 'View Admin') setViewAdmin(admin);
     if (action === 'Update Role') setRoleModal(admin);
     if (action === 'Deactivate') setConfirm({ admin, id: admin._id || admin.id, action: 'deactivate' });
     if (action === 'Activate') setConfirm({ admin, id: admin._id || admin.id, action: 'activate' });
     if (action === 'Delete') setConfirm({ admin, id: admin._id || admin.id, action: 'delete' });
   };
 
-  const applyRoleUpdate = async (id, role) => {
+  const applyRoleUpdate = async (id, updates) => {
     try {
-      const res = await adminApi.updateAdmin(id, { role });
-      console.log('Admin role updated:', res);
+      const res = await adminApi.updateAdmin(id, updates);
+      console.log('Admin updated:', res);
       // Update local state
-      setAdmins((prev) => prev.map((a) => (a._id === id || a.id === id ? { ...a, role } : a)));
+      setAdmins((prev) => prev.map((a) => (a._id === id || a.id === id ? { ...a, ...updates } : a)));
     } catch (err) {
-      console.error('Failed to update admin role:', err);
+      console.error('Failed to update admin:', err);
       throw err;
     }
   };
@@ -235,26 +219,36 @@ export default function Admins() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => handleAction('View Admin', admin)}
+                        className="text-blue-500 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                        title="View Admin"
+                      >
+                        <FiEye className="w-5 h-5" />
+                      </button>
+                      <button
                         onClick={() => handleAction('Update Role', admin)}
                         className="text-amber-500 hover:text-amber-600 p-1.5 rounded-full hover:bg-amber-50 dark:hover:bg-amber-900/30"
                         title="Update Role"
                       >
                         <FiShield className="w-5 h-5" />
                       </button>
-                      <button
-                        onClick={() => handleAction('Activate', admin)}
-                        className="text-green-500 hover:text-green-700 p-1.5 rounded-full hover:bg-green-50 dark:hover:bg-green-900/30"
-                        title="Activate Admin"
-                      >
-                        <FiUserCheck className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleAction('Deactivate', admin)}
-                        className="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"
-                        title="Deactivate Admin"
-                      >
-                        <FiUserX className="w-5 h-5" />
-                      </button>
+                      {!admin.status || admin.status === 'Active' ? (
+                        <button
+                          onClick={() => handleAction('Deactivate', admin)}
+                          className="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"
+                          title="Deactivate Admin"
+                        >
+                          <FiUserX className="w-5 h-5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleAction('Activate', admin)}
+                          className="text-green-500 hover:text-green-700 p-1.5 rounded-full hover:bg-green-50 dark:hover:bg-green-900/30"
+                          title="Activate Admin"
+                        >
+                          <FiUserCheck className="w-5 h-5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleAction('Delete', admin)}
                         className="text-red-600 hover:text-red-800 p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"
@@ -314,6 +308,7 @@ export default function Admins() {
                 const adminData = {
                   firstName: fd.get('firstName'),
                   lastName: fd.get('lastName'),
+                  username: fd.get('username'),
                   email: fd.get('email'),
                   password: fd.get('password'),
                   role: fd.get('role'),
@@ -337,29 +332,31 @@ export default function Admins() {
         <form id="create-admin-form" className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[var(--color-text-secondary)] mb-1">First Name</label>
-              <input name="firstName" className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm text-[var(--color-text-secondary)] mb-1">First Name *</label>
+              <input name="firstName" required className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Last Name</label>
-              <input name="lastName" className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Last Name *</label>
+              <input name="lastName" required className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
           <div>
-            <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Email</label>
-            <input type="email" name="email" className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Username *</label>
+            <input name="username" required className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
-            <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Password</label>
-            <input type="password" name="password" className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Email *</label>
+            <input type="email" name="email" required className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Password *</label>
+            <input type="password" name="password" required className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
             <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Role</label>
-            <select name="role" defaultValue="moderator" className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="super_admin">Super Admin</option>
+            <select name="role" defaultValue="admin" className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="admin">Admin</option>
-              <option value="moderator">Moderator</option>
-              <option value="support">Support</option>
+              <option value="super_admin">Super Admin</option>
             </select>
           </div>
           <div>
@@ -368,6 +365,14 @@ export default function Admins() {
               <label className="flex items-center space-x-2">
                 <input type="checkbox" name="permissions" value="users_view" className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
                 <span className="text-sm text-[var(--color-text-primary)]">Users View</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input type="checkbox" name="permissions" value="view_post" className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                <span className="text-sm text-[var(--color-text-primary)]">View Post</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input type="checkbox" name="permissions" value="delete_post" className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                <span className="text-sm text-[var(--color-text-primary)]">Delete Post</span>
               </label>
               <label className="flex items-center space-x-2">
                 <input type="checkbox" name="permissions" value="users_edit" className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
@@ -445,44 +450,277 @@ export default function Admins() {
       <Modal
         isOpen={!!roleModal}
         onClose={() => setRoleModal(null)}
-        title={roleModal ? `Update Role • ${roleModal.name}` : ''}
-        size="sm"
+        title={roleModal ? `Update Admin • ${roleModal.username || roleModal.name}` : ''}
+        size="lg"
         footer={
           <>
             <button onClick={() => setRoleModal(null)} className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] hover:opacity-90">Cancel</button>
             <button
+              disabled={updateLoading}
               onClick={async () => {
-                const form = document.getElementById('update-role-form');
-                const fd = new FormData(form);
-                const role = fd.get('role');
+                console.log('🟡 Confirm button clicked');
+                console.log('🔍 Current roleModal:', roleModal);
 
                 try {
-                  await applyRoleUpdate(roleModal._id || roleModal.id, role);
+                  setUpdateLoading(true);
+
+                  const form = document.getElementById('update-admin-form');
+                  const fd = new FormData(form);
+
+                  // Collect form data
+                  const firstName = fd.get('firstName');
+                  const lastName = fd.get('lastName');
+                  const username = fd.get('username');
+                  const email = fd.get('email');
+                  const password = fd.get('password');
+                  const role = fd.get('role');
+
+                  // Collect permissions
+                  const permissions = [];
+                  const permissionCheckboxes = document.querySelectorAll('#update-admin-form input[name="permissions"]:checked');
+                  permissionCheckboxes.forEach(checkbox => {
+                    permissions.push(checkbox.value);
+                  });
+
+                  const updates = {
+                    firstName,
+                    lastName,
+                    username,
+                    email,
+                    role,
+                    permissions // Make sure this is included
+                  };
+
+                  // Only include password if provided
+                  if (password && password.trim()) {
+                    updates.password = password;
+                  }
+
+                  // Get the admin ID - try different possible fields
+                  const adminId = roleModal._id || roleModal.id;
+                  console.log('🎯 Using Admin ID:', adminId);
+                  console.log('📤 Sending updates:', updates);
+
+                  await applyRoleUpdate(adminId, updates);
+
+                  // Success handling
+                  console.log('✅ Update successful!');
                   setRoleModal(null);
+
+                  // Refresh the admin list
+                  if (fetchAdmins) {
+                    await fetchAdmins();
+                  }
+
                 } catch (err) {
+                  console.error('💥 Confirm button error:', err);
                   // Error is already logged in applyRoleUpdate
                   // Could show toast here if needed
+                } finally {
+                  setUpdateLoading(false);
                 }
               }}
-              className="px-4 py-2 rounded-lg bg-[var(--color-primary-cyan)] text-white hover:opacity-90"
+              className="px-4 py-2 rounded-lg bg-[var(--color-primary-cyan)] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Save
+              {updateLoading ? 'Saving...' : 'Save Changes'}
             </button>
           </>
         }
       >
         {roleModal && (
-          <form id="update-role-form" className="space-y-4">
-            <div>
-              <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Role</label>
-              <select name="role" defaultValue={roleModal.role} className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="super_admin">Super Admin</option>
-                <option value="admin">Admin</option>
-                <option value="moderator">Moderator</option>
-                <option value="support">Support</option>
-              </select>
+          <form id="update-admin-form" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">Basic Information</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-[var(--color-text-secondary)] mb-1">First Name</label>
+                      <input name="firstName" defaultValue={roleModal.firstName} className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Last Name</label>
+                      <input name="lastName" defaultValue={roleModal.lastName} className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Username</label>
+                    <input name="username" defaultValue={roleModal.username} className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Email</label>
+                    <input type="email" name="email" defaultValue={roleModal.email} className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Password (leave empty to keep current)</label>
+                    <input type="password" name="password" placeholder="New password (optional)" className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[var(--color-text-secondary)] mb-1">Role</label>
+                    <select name="role" defaultValue={roleModal.role} className="w-full px-3 py-2 rounded-lg border border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="admin">Admin</option>
+                      <option value="super_admin">Super Admin</option>
+                    </select>
+                  </div>
+                  <div className="text-sm text-[var(--color-text-secondary)]">
+                    <p><strong>Status:</strong> {roleModal.status || 'Active'}</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">Permissions</h3>
+                <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="users_view" defaultChecked={roleModal.permissions?.includes('users_view')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Users View</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="view_post" defaultChecked={roleModal.permissions?.includes('view_post')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">View Post</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="delete_post" defaultChecked={roleModal.permissions?.includes('delete_post')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Delete Post</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="users_edit" defaultChecked={roleModal.permissions?.includes('users_edit')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Users Edit</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="users_delete" defaultChecked={roleModal.permissions?.includes('users_delete')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Users Delete</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="view_dashboard" defaultChecked={roleModal.permissions?.includes('view_dashboard')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">View Dashboard</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="transactions_view" defaultChecked={roleModal.permissions?.includes('transactions_view')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Transactions View</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="transactions_refund" defaultChecked={roleModal.permissions?.includes('transactions_refund')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Transactions Refund</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="reports_view" defaultChecked={roleModal.permissions?.includes('reports_view')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Reports View</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="settings_edit" defaultChecked={roleModal.permissions?.includes('settings_edit')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Settings Edit</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="admin_create" defaultChecked={roleModal.permissions?.includes('admin_create')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Admin Create</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="admin_delete" defaultChecked={roleModal.permissions?.includes('admin_delete')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Admin Delete</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="games_manage" defaultChecked={roleModal.permissions?.includes('games_manage')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Games Manage</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="bonuses_manage" defaultChecked={roleModal.permissions?.includes('bonuses_manage')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Bonuses Manage</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="withdrawals_approve" defaultChecked={roleModal.permissions?.includes('withdrawals_approve')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Withdrawals Approve</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="verify_users" defaultChecked={roleModal.permissions?.includes('verify_users')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Verify Users</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="disable_users" defaultChecked={roleModal.permissions?.includes('disable_users')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Disable Users</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="enable_users" defaultChecked={roleModal.permissions?.includes('enable_users')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Enable Users</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="read_support_tickets" defaultChecked={roleModal.permissions?.includes('read_support_tickets')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Read Support Tickets</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="respond_support_tickets" defaultChecked={roleModal.permissions?.includes('respond_support_tickets')} className="rounded border-[var(--color-bg-tertiary)] bg-[var(--color-bg-secondary)] text-blue-500 focus:ring-blue-500" />
+                    <span className="text-sm text-[var(--color-text-primary)]">Respond Support Tickets</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </form>
+        )}
+      </Modal>
+
+      {/* View Admin Modal */}
+      <Modal
+        isOpen={!!viewAdmin}
+        onClose={() => setViewAdmin(null)}
+        title={viewAdmin ? `Admin Details • ${viewAdmin.username || viewAdmin.name}` : 'Admin Details'}
+        size="md"
+      >
+        {viewAdmin && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3">Basic Information</h3>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">Admin ID:</span>
+                    <p className="text-sm text-[var(--color-text-primary)] font-mono">{viewAdmin._id || viewAdmin.id || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">Username:</span>
+                    <p className="text-sm text-[var(--color-text-primary)]">{viewAdmin.username || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">Email:</span>
+                    <p className="text-sm text-[var(--color-text-primary)]">{viewAdmin.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">Role:</span>
+                    <p className="text-sm text-[var(--color-text-primary)]">{formatRole(viewAdmin.role)}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">Status:</span>
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      viewAdmin.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {viewAdmin.status || 'Active'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">Last Login:</span>
+                    <p className="text-sm text-[var(--color-text-primary)]">{viewAdmin.lastLogin || 'Never'}</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3">Permissions</h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {viewAdmin.permissions && viewAdmin.permissions.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-2">
+                      {viewAdmin.permissions.map((permission, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-sm text-[var(--color-text-primary)] capitalize">
+                            {permission.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[var(--color-text-secondary)]">No specific permissions assigned</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </Modal>
 

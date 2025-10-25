@@ -1,37 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import adminApi from '../api/admin';
 import { FiEye, FiEdit2, FiSlash, FiTrash2, FiUser } from 'react-icons/fi';
 import Modal from '../components/Modal';
 
-// Mock data for users (copied from existing Users.jsx)
-const mockUsers = [
-  {
-    id: 'USR001',
-    profilePic: 'https://i.pravatar.cc/150?img=1',
-    fullName: 'Alice Johnson',
-    email: 'alice.j@example.com',
-    subscriptionPlan: 'Premium',
-    dateJoined: '2023-01-15',
-  },
-  {
-    id: 'USR002',
-    profilePic: 'https://i.pravatar.cc/150?img=2',
-    fullName: 'Bob Smith',
-    email: 'bob.s@example.com',
-    subscriptionPlan: 'Basic',
-    dateJoined: '2023-02-20',
-  },
-  {
-    id: 'USR003',
-    profilePic: 'https://i.pravatar.cc/150?img=3',
-    fullName: 'Charlie Brown',
-    email: 'charlie.b@example.com',
-    subscriptionPlan: 'Premium',
-    dateJoined: '2023-03-10',
-  },
-];
 
 export default function UsersNew() {
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [viewUser, setViewUser] = useState(null);
   const [editUser, setEditUser] = useState(null);
@@ -41,6 +16,25 @@ export default function UsersNew() {
     setUsers((prev) => prev.map((u) => (u.id === payload.id ? { ...u, ...payload } : u)));
   };
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const response = await adminApi.getAllUsers();
+        if (response && response.data) {
+          setUsers(Array.isArray(response.data) ? response.data : []);
+        }
+      } catch (err) {
+        console.error('Failed to load users:', err);
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
   const suspendUser = (user) => applyUpdate({ id: user.id, subscriptionPlan: 'Suspended' });
   const deleteUser = (user) => setUsers((prev) => prev.filter((u) => u.id !== user.id));
 
@@ -49,6 +43,14 @@ export default function UsersNew() {
       <h2 className="text-3xl font-bold mb-6 text-[var(--color-text-primary)]">User Management</h2>
       <div className="bg-[var(--color-bg-secondary)] rounded-lg shadow-md overflow-hidden">
         <div className="p-4 flex items-center justify-between">
+          {loading && (
+            <div className="flex items-center justify-center py-16 w-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading users...</p>
+              </div>
+            </div>
+          )}
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -68,7 +70,7 @@ export default function UsersNew() {
             </tr>
           </thead>
           <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-bg-tertiary)]">
-            {users
+            {!loading && users
               .filter((u) => {
                 const q = query.trim().toLowerCase();
                 if (!q) return true;

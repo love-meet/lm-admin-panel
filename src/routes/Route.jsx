@@ -1,15 +1,17 @@
 import { lazy } from 'react';
 import ProtectedRoute from './ProtectedRoute';
 
-const Dashboard = lazy(() => import('../pages/Dashboard'));
-const Users = lazy(() => import('../pages/Users'));
+const Dashboard = lazy(() => import('../pages/Dashboard/index'));
+const Users = lazy(() => import('../pages/Users/index'));
 const Admins = lazy(() => import('../pages/Admins'));
-const PostSection = lazy(() => import('../pages/PostSection'));
+const PostSection = lazy(() => import('../pages/PostSection/index'));
 const Reports = lazy(() => import('../pages/Reports'));
 const DashboardReports = lazy(() => import('../pages/DashboardReports'));
 const ApiTester = lazy(() => import('../pages/ApiTester'));
-const Transactions = lazy(() => import('../pages/Transactions'));
+const Transactions = lazy(() => import('../pages/Transactions/index'));
 const SupportTickets = lazy(() => import('../pages/SupportTickets'));
+const LiveChat = lazy(() => import('../pages/LiveChat'));
+const Chat = lazy(() => import('../pages/Chat'));
 const NotFound = lazy(() => import('../pages/Notfound'));
 const Login = lazy(() => import('../pages/Login'));
 
@@ -37,7 +39,7 @@ export const routes = [
   // Protected routes
   {
     path: '/dashboard',
-    element: <ProtectedRoute><Dashboard /></ProtectedRoute>,
+    element: <ProtectedRoute requiredPermission="view_dashboard"><Dashboard /></ProtectedRoute>,
     name: 'Dashboard',
     showInNav: true,
     protected: true,
@@ -46,7 +48,7 @@ export const routes = [
   },
   {
     path: '/users',
-    element: <ProtectedRoute><Users /></ProtectedRoute>,
+    element: <ProtectedRoute requiredPermission="users_view"><Users /></ProtectedRoute>,
     name: 'Users',
     showInNav: true,
     protected: true,
@@ -54,7 +56,7 @@ export const routes = [
   },
   {
     path: '/admins',
-    element: <ProtectedRoute><Admins /></ProtectedRoute>,
+    element: <ProtectedRoute requiredPermission="admin_create"><Admins /></ProtectedRoute>,
     name: 'Admins',
     showInNav: true,
     protected: true,
@@ -70,7 +72,7 @@ export const routes = [
   },
   {
     path: '/reports',
-    element: <ProtectedRoute><Reports /></ProtectedRoute>,
+    element: <ProtectedRoute requiredPermission="reports_view"><Reports /></ProtectedRoute>,
     name: 'Reports',
     showInNav: true,
     protected: true,
@@ -94,7 +96,7 @@ export const routes = [
   },
   {
     path: '/transactions',
-    element: <ProtectedRoute><Transactions /></ProtectedRoute>,
+    element: <ProtectedRoute requiredPermission="transactions_view"><Transactions /></ProtectedRoute>,
     name: 'Transactions',
     showInNav: true,
     protected: true,
@@ -102,8 +104,24 @@ export const routes = [
   },
   {
     path: '/tickets',
-    element: <ProtectedRoute><SupportTickets /></ProtectedRoute>,
+    element: <ProtectedRoute requiredPermission="read_support_tickets"><SupportTickets /></ProtectedRoute>,
     name: 'Tickets',
+    showInNav: true,
+    protected: true,
+    layout: true,
+  },
+  {
+    path: '/livechat',
+    element: <ProtectedRoute><LiveChat /></ProtectedRoute>,
+    name: 'Live Chat',
+    showInNav: true,
+    protected: true,
+    layout: true,
+  },
+  {
+    path: '/chat',
+    element: <ProtectedRoute><Chat /></ProtectedRoute>,
+    name: 'Chat',
     showInNav: true,
     protected: true,
     layout: true,

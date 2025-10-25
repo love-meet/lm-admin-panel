@@ -3,6 +3,7 @@ import adminApi from '../api/admin';
 import { toast } from 'sonner';
 import Modal from '../components/Modal';
 import UserGrowthChart from '../components/UserGrowthChart';
+import { useAuth } from '../context/AuthContext';
 
 // Helper to read URL params
 const readQuery = (key) => {
@@ -30,6 +31,7 @@ const setQuery = (key, value) => {
 };
 
 const Reports = () => {
+  const { hasPermission } = useAuth();
   const [reportsData, setReportsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userGrowthData, setUserGrowthData] = useState(null);
@@ -41,6 +43,11 @@ const Reports = () => {
   const [modalTitle, setModalTitle] = useState('');
   const [modalCurrentPage, setModalCurrentPage] = useState(1);
   const modalItemsPerPage = 10;
+
+  // Second modal for full info
+  const [secondModalOpen, setSecondModalOpen] = useState(false);
+  const [secondModalData, setSecondModalData] = useState(null);
+  const [secondModalTitle, setSecondModalTitle] = useState('');
 
   const paginatedModalData = useMemo(() => {
     const startIndex = (modalCurrentPage - 1) * modalItemsPerPage;
@@ -54,11 +61,11 @@ const Reports = () => {
       setLoading(true);
       try {
         const response = await adminApi.getDashboardReportsDaily();
-        console.log('Reports data:', response);
 
-        if (response && response.data) {
-          // Assuming response.data is an array of report objects
-          setReportsData(Array.isArray(response.data) ? response.data : []);
+        if (response?.data && Array.isArray(response.data)) {
+          setReportsData(response.data);
+        } else {
+          setReportsData([]);
         }
       } catch (err) {
         console.error('Failed to load reports:', err);
@@ -140,7 +147,6 @@ const Reports = () => {
 
     try {
       let response;
-      // Fetch data from the appropriate API endpoint
       switch (type) {
         case 'users':
           response = await adminApi.getUsersReportsDaily({ date });
@@ -162,22 +168,13 @@ const Reports = () => {
           return;
       }
 
-      console.log(`API response for ${type}:`, response);
-
-      // Handle the response data
+      // Standardized response handling
       let data = [];
-      if (response && response.data) {
-        if (type === 'users') {
-          // For users, the data is in response.data.users array
-          data = response.data.users || [];
-        } else if (type === 'deposits' || type === 'withdrawals') {
-          // For transactions, the data is in response.data.transactions array
-          data = response.data.transactions || [];
-        } else if (type === 'posts') {
-          // For posts, the data is in response.data.posts array
-          data = response.data.posts || [];
-        } else if (Array.isArray(response.data)) {
+      if (response?.data) {
+        if (Array.isArray(response.data)) {
           data = response.data;
+        } else if (response.data[type] && Array.isArray(response.data[type])) {
+          data = response.data[type];
         } else if (response.data.data && Array.isArray(response.data.data)) {
           data = response.data.data;
         } else if (typeof response.data === 'object') {
@@ -188,28 +185,35 @@ const Reports = () => {
       setModalData(data);
       setModalCurrentPage(1);
       setModalOpen(true);
-
-      // Set URL params to persist modal state
       setQuery('reportType', type);
       setQuery('reportDate', date);
 
     } catch (error) {
       console.error(`Error fetching ${type} data:`, error);
+      toast.error(`Failed to load ${type} data`);
       setModalData([]);
       setModalOpen(true);
     }
   };
 
+  // Handle clicking on summary item to open full info modal
+  const handleSummaryClick = (item, type) => {
+    setSecondModalData(item);
+    setSecondModalTitle(`${type.charAt(0).toUpperCase() + type.slice(1)} Full Details`);
+    setSecondModalOpen(true);
+  };
+
   // Render clickable value
   const renderClickableValue = (type, value, date) => {
-    const isClickable = value && value !== 0 && value !== '0';
-    const displayValue = value?.toLocaleString() || '0';
+    const numValue = Number(value) || 0;
+    const displayValue = numValue.toLocaleString();
 
-    if (isClickable) {
+    if (numValue > 0) {
       return (
         <button
-          onClick={() => handleValueClick(type, value, date)}
+          onClick={() => handleValueClick(type, numValue, date)}
           className="text-blue-500 hover:text-blue-300 hover:underline font-medium cursor-pointer transition-colors"
+          aria-label={`View ${type} details for ${new Date(date).toLocaleDateString()}`}
         >
           {displayValue}
         </button>
@@ -343,7 +347,7 @@ const Reports = () => {
                             <div className="text-[var(--color-text-secondary)] text-sm">{item.user?.badge || ''}</div>
                           </div>
                         </div>
-                        <div className="text-[var(--color-text-primary)] whitespace-pre-line">{item.content}</div>
+                        <div className="text-[var(--color-text-primary)] whitespace-pre-line line-clamp-3">{item.content}</div>
                         {item.media && item.media.length > 0 && (
                           <div className="rounded-lg overflow-hidden bg-[var(--color-bg-primary)] flex items-center justify-center h-32">
                             <div className="w-full h-full flex items-center justify-center overflow-hidden">
@@ -364,24 +368,31 @@ const Reports = () => {
                           <span>Approved: {item.approved ? 'Yes' : 'No'}</span>
                           <span>Created: {new Date(item.createdAt).toLocaleString()}</span>
                         </div>
+                        <button
+                          onClick={() => handleSummaryClick(item, modalType)}
+                          className="text-blue-500 hover:text-blue-300 text-sm font-medium"
+                        >
+                          View Full Details
+                        </button>
                       </div>
                     ) : (
-                      // Default key-value rendering for other types
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
-                        {Object.entries(item)
-                          .filter(([key]) => !['transactionHash', '__v'].includes(key))
-                          .map(([key, value]) => (
-                          <div key={key}>
-                            <span className="font-medium text-[var(--color-text-secondary)] capitalize">
-                              {key.replace(/([A-Z])/g, ' $1').trim()}:
-                            </span>
+                      // Default key-value rendering for other types with summary
+                      <div className="space-y-2 cursor-pointer" onClick={() => handleSummaryClick(item, modalType)}>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          {/* Show ID and Balance as summary */}
+                          <div>
+                            <span className="font-medium text-[var(--color-text-secondary)]">ID:</span>
                             <span className="ml-2 text-[var(--color-text-primary)]">
-                              {typeof value === 'number' ? value.toLocaleString() :
-                               typeof value === 'boolean' ? (value ? 'Yes' : 'No') :
-                               String(value)}
+                              {item._id || item.id || item.userId || 'N/A'}
                             </span>
                           </div>
-                        ))}
+                          <div>
+                            <span className="font-medium text-[var(--color-text-secondary)]">Balance:</span>
+                            <span className="ml-2 text-[var(--color-text-primary)]">
+                              {item.balance || item.amount || 0}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -413,6 +424,77 @@ const Reports = () => {
             ) : (
               <div className="text-center py-8 text-[var(--color-text-secondary)]">
                 No details available
+              </div>
+            )}
+          </div>
+        </Modal>
+
+        {/* Second Modal for Full Info */}
+        <Modal
+          isOpen={secondModalOpen}
+          onClose={() => setSecondModalOpen(false)}
+          title={secondModalTitle}
+          size="xl"
+        >
+          <div className="max-h-96 overflow-y-auto">
+            {secondModalData && (
+              <div className="space-y-4">
+                {modalType === 'posts' ? (
+                  // Full rendering for posts
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      {secondModalData.user?.userAvatar && (
+                        <img src={secondModalData.user.userAvatar} alt="" className="h-12 w-12 rounded-full object-cover" />
+                      )}
+                      <div>
+                        <div className="text-[var(--color-text-primary)] font-semibold text-lg">{secondModalData.user?.username || 'Unknown'}</div>
+                        <div className="text-[var(--color-text-secondary)]">{secondModalData.user?.badge || ''}</div>
+                      </div>
+                    </div>
+                    <div className="text-[var(--color-text-primary)] whitespace-pre-line">{secondModalData.content}</div>
+                    {secondModalData.media && secondModalData.media.length > 0 && (
+                      <div className="rounded-lg overflow-hidden bg-[var(--color-bg-primary)] flex items-center justify-center h-64">
+                        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                          {secondModalData.media.length === 1 ? (
+                            <img src={secondModalData.media[0].url || secondModalData.media[0]} alt="post media" className="object-contain max-h-full max-w-full" />
+                          ) : (
+                            <div className="grid grid-cols-2 gap-2 p-2 w-full h-full overflow-auto">
+                              {secondModalData.media.map((m, i) => (
+                                <img key={i} src={m.url || m} alt={`post media ${i + 1}`} className="object-cover w-full h-24 rounded" />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4 text-sm text-[var(--color-text-secondary)] border-t border-b border-[var(--color-bg-primary)] py-4">
+                      <span>Status: {secondModalData.status}</span>
+                      <span>Approved: {secondModalData.approved ? 'Yes' : 'No'}</span>
+                      <span>Created: {new Date(secondModalData.createdAt).toLocaleString()}</span>
+                      <span>Updated: {new Date(secondModalData.updatedAt).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ) : (
+                  // Full key-value rendering for other types
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    {Object.entries(secondModalData)
+                      .filter(([key]) => !['transactionHash', '__v'].includes(key))
+                      .map(([key, value]) => (
+                      <div key={key} className="bg-[var(--color-bg-tertiary)] p-3 rounded">
+                        <span className="font-medium text-[var(--color-text-secondary)] capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}:
+                        </span>
+                        <div className="mt-1 text-[var(--color-text-primary)] break-words">
+                          {typeof value === 'number' ? value.toLocaleString() :
+                           typeof value === 'boolean' ? (value ? 'Yes' : 'No') :
+                           Array.isArray(value) ? value.join(', ') :
+                           typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) :
+                           String(value)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
