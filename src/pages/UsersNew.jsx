@@ -131,7 +131,7 @@ export default function UsersNew() {
         onClose={() => setViewUser(null)}
         title={viewUser ? `User Profile • ${viewUser.fullName}` : ''}
         size="lg"
-        footer={<button onClick={() => setViewUser(null)} className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] hover:opacity-90">Close</button>}
+        footer={<button onClick={() => setViewUser(null)} className="px-4 py-2 rounded-lg bg-gray-800 hover:opacity-90">Close</button>}
       >
         {viewUser && (
           <div className="space-y-6">

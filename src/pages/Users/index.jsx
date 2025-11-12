@@ -39,7 +39,7 @@ export default function Users() {
   } = useUsersData();
 
   return (
-    <div className="p-8 bg-[var(--color-bg-primary)] min-h-screen">
+    <div className="p-4 md:p-6 bg-gradient-to-br from-gray-800 to-purple-300 min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-[var(--color-text-primary)]">User Management</h2>
       <div className="bg-[var(--color-bg-secondary)] rounded-lg shadow-md overflow-visible">
         <UsersFilters

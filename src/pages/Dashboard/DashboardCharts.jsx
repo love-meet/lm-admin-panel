@@ -2,6 +2,51 @@ import React, { useMemo } from 'react';
 import { Line, Bar } from 'react-chartjs-2';
 
 const DashboardCharts = ({ userGrowthApiData, subscriptionRevenueApiData }) => {
+  // Add keyframe animations
+  const keyframes = `
+    @keyframes pop-in {
+      0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(30px);
+      }
+      50% {
+        transform: scale(1.1) translateY(-10px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.8; }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) translateX(0); }
+      50% { transform: translateY(-20px) translateX(10px); }
+    }
+
+    @keyframes float-delayed {
+      0%, 100% { transform: translateY(0) translateX(0); }
+      50% { transform: translateY(20px) translateX(-10px); }
+    }
+
+    @keyframes bounce-subtle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+  `;
+
+  React.useEffect(() => {
+    // Add styles to document head
+    const styleEl = document.createElement('style');
+    styleEl.textContent = keyframes;
+    document.head.appendChild(styleEl);
+    return () => styleEl.remove();
+  }, []);
+
   // User growth data - Simplified and robust processing
   const userGrowthData = useMemo(() => {
     if (userGrowthApiData && userGrowthApiData.length > 0) {
@@ -24,8 +69,8 @@ const DashboardCharts = ({ userGrowthApiData, subscriptionRevenueApiData }) => {
         datasets: [{
           label: 'Total Users',
           data,
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.5)',
+          borderColor: 'rgb(124, 58, 237)',  // violet-600
+          backgroundColor: 'rgba(124, 58, 237, 0.5)',
           tension: 0.3,
         }],
       };
@@ -37,8 +82,8 @@ const DashboardCharts = ({ userGrowthApiData, subscriptionRevenueApiData }) => {
       datasets: [{
         label: 'New Users',
         data: [65, 59, 80, 81, 56, 55],
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        borderColor: 'rgb(124, 58, 237)',  // violet-600
+        backgroundColor: 'rgba(124, 58, 237, 0.5)',
         tension: 0.3,
       }],
     };
@@ -55,11 +100,11 @@ const DashboardCharts = ({ userGrowthApiData, subscriptionRevenueApiData }) => {
 
       const backgroundColors = subscriptionRevenueApiData.map((item, index) => {
         const colors = [
-          'rgba(59, 130, 246, 0.7)',     // Blue for total
+          'rgba(236, 72, 153, 0.7)',     // Pink for total
           'rgba(16, 185, 129, 0.7)',     // Green
           'rgba(245, 158, 11, 0.7)',     // Amber
           'rgba(139, 92, 246, 0.7)',     // Purple
-          'rgba(236, 72, 153, 0.7)',     // Pink
+          'rgba(59, 130, 246, 0.7)',     // Blue
           'rgba(239, 68, 68, 0.7)',      // Red
           'rgba(34, 197, 94, 0.7)',      // Emerald
           'rgba(168, 85, 247, 0.7)',     // Violet
@@ -69,11 +114,11 @@ const DashboardCharts = ({ userGrowthApiData, subscriptionRevenueApiData }) => {
 
       const borderColors = subscriptionRevenueApiData.map((item, index) => {
         const colors = [
-          'rgba(59, 130, 246, 1)',
+          'rgba(236, 72, 153, 1)',  // Pink
           'rgba(16, 185, 129, 1)',
           'rgba(245, 158, 11, 1)',
           'rgba(139, 92, 246, 1)',
-          'rgba(236, 72, 153, 1)',
+          'rgba(59, 130, 246, 1)',
           'rgba(239, 68, 68, 1)',
           'rgba(34, 197, 94, 1)',
           'rgba(168, 85, 247, 1)',
@@ -129,65 +174,122 @@ const DashboardCharts = ({ userGrowthApiData, subscriptionRevenueApiData }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
       {/* User Growth Over Time */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-xl shadow-lg p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-semibold text-white mb-4">
-          User Growth Over Time
-        </h2>
-        <div className="h-80">
-          <Line data={userGrowthData} options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { labels: { color: '#ffffff', usePointStyle: true, padding: 20 } },
-              tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                titleColor: '#ffffff',
-                bodyColor: '#ffffff',
-                borderColor: 'rgba(255,255,255,0.2)',
-                borderWidth: 1,
-                callbacks: {
-                  label: (context) => `${context.dataset.label}: ${context.parsed.y.toLocaleString()}`
-                }
+      <div className="group relative" style={{ animation: 'pop-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)' }}>
+        {/* Pulsing glow effect */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-75 transition duration-500" style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}></div>
+        
+        {/* Card */}
+        <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 border-2 border-transparent hover:border-white/20 group-hover:scale-[1.02] group-hover:-translate-y-1">
+          {/* Animated background particles */}
+          <div className="absolute inset-0 overflow-hidden opacity-20">
+            <div className="absolute top-0 -left-4 w-24 h-24 bg-gradient-to-br from-violet-400 to-purple-400 rounded-full blur-2xl" style={{ animation: 'float 6s ease-in-out infinite' }}></div>
+            <div className="absolute bottom-0 -right-4 w-32 h-32 bg-gradient-to-br from-indigo-400 to-violet-400 rounded-full blur-2xl" style={{ animation: 'float-delayed 8s ease-in-out infinite' }}></div>
+          </div>
+
+          <div className="flex items-start justify-between mb-4">
+            <div className="relative p-3 rounded-xl bg-gradient-to-br from-violet-400 to-indigo-400 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+              <span className="text-2xl" style={{ animation: 'bounce-subtle 3s ease-in-out infinite' }}>📈</span>
+            </div>
+          </div>
+          
+          <h2 className="text-lg md:text-xl font-semibold text-gray-800 dark:text-white mb-4">
+            User Growth Over Time
+          </h2>
+          
+          <div className="h-80">
+            <Line data={userGrowthData} options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { labels: { color: 'rgb(75, 85, 99)', usePointStyle: true, padding: 20 } },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#ffffff',
+                  bodyColor: '#ffffff',
+                  borderColor: 'rgba(255,255,255,0.2)',
+                  borderWidth: 1,
+                  callbacks: {
+                    label: (context) => `${context.dataset.label}: ${context.parsed.y.toLocaleString()}`
+                  }
+                },
               },
-            },
-            scales: {
-              x: { ticks: { color: '#ffffff', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.1)' } },
-              y: { beginAtZero: true, ticks: { color: '#ffffff', callback: (value) => Math.round(value).toString() }, grid: { color: 'rgba(255,255,255,0.1)' } },
-            },
-          }} />
-          <div className="mt-4 text-center text-sm text-gray-300">
-            {userGrowthApiData.length > 0 ? 'Live API Data' : 'Sample Data'}
+              scales: {
+                x: { 
+                  ticks: { color: 'rgb(75, 85, 99)', maxRotation: 45 }, 
+                  grid: { color: 'rgba(75, 85, 99, 0.1)' } 
+                },
+                y: { 
+                  beginAtZero: true, 
+                  ticks: { 
+                    color: 'rgb(75, 85, 99)', 
+                    callback: (value) => Math.round(value).toString() 
+                  }, 
+                  grid: { color: 'rgba(75, 85, 99, 0.1)' } 
+                },
+              },
+            }} />
+            <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+              {userGrowthApiData.length > 0 ? 'Live API Data' : 'Sample Data'}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Revenue by Subscription Plan */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-xl shadow-lg p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-semibold text-white mb-4">
-          Revenue by Subscription Plan
-        </h2>
-        <div className="h-80">
-          <Bar data={revenueByPlanData} options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                titleColor: '#ffffff',
-                bodyColor: '#ffffff',
-                borderColor: 'rgba(255,255,255,0.2)',
-                borderWidth: 1,
-                callbacks: { label: (context) => `$${context.parsed.y.toLocaleString()}` },
+      <div className="group relative" style={{ animation: 'pop-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.1s' }}>
+        {/* Pulsing glow effect */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-rose-600 to-red-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-75 transition duration-500" style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}></div>
+        
+        {/* Card */}
+        <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 border-2 border-transparent hover:border-white/20 group-hover:scale-[1.02] group-hover:-translate-y-1">
+          {/* Animated background particles */}
+          <div className="absolute inset-0 overflow-hidden opacity-20">
+            <div className="absolute top-0 -left-4 w-24 h-24 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full blur-2xl" style={{ animation: 'float 6s ease-in-out infinite' }}></div>
+            <div className="absolute bottom-0 -right-4 w-32 h-32 bg-gradient-to-br from-rose-400 to-red-400 rounded-full blur-2xl" style={{ animation: 'float-delayed 8s ease-in-out infinite' }}></div>
+          </div>
+
+          <div className="flex items-start justify-between mb-4">
+            <div className="relative p-3 rounded-xl bg-gradient-to-br from-pink-400 to-rose-400 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+              <span className="text-2xl" style={{ animation: 'bounce-subtle 3s ease-in-out infinite' }}>💰</span>
+            </div>
+          </div>
+          
+          <h2 className="text-lg md:text-xl font-semibold text-gray-800 dark:text-white mb-4">
+            Revenue by Subscription Plan
+          </h2>
+          
+          <div className="h-80">
+            <Bar data={revenueByPlanData} options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#ffffff',
+                  bodyColor: '#ffffff',
+                  borderColor: 'rgba(255,255,255,0.2)',
+                  borderWidth: 1,
+                  callbacks: { label: (context) => `$${context.parsed.y.toLocaleString()}` },
+                },
               },
-            },
-            scales: {
-              x: { ticks: { color: '#ffffff', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.1)' } },
-              y: { ticks: { color: '#ffffff', callback: (value) => `$${value.toLocaleString()}` }, grid: { color: 'rgba(255,255,255,0.1)' } },
-            },
-          }} />
-          <div className="mt-2 text-center text-sm text-gray-300">
-            {subscriptionRevenueApiData.length > 0 ? 'Live API Data' : 'Sample Data'}
+              scales: {
+                x: { 
+                  ticks: { color: 'rgb(75, 85, 99)', maxRotation: 45 }, 
+                  grid: { color: 'rgba(75, 85, 99, 0.1)' } 
+                },
+                y: { 
+                  ticks: { 
+                    color: 'rgb(75, 85, 99)', 
+                    callback: (value) => `$${value.toLocaleString()}` 
+                  }, 
+                  grid: { color: 'rgba(75, 85, 99, 0.1)' } 
+                },
+              },
+            }} />
+            <div className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+              {subscriptionRevenueApiData.length > 0 ? 'Live API Data' : 'Sample Data'}
+            </div>
           </div>
         </div>
       </div>

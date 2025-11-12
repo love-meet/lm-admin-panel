@@ -21,7 +21,7 @@ const Transactions = () => {
   } = useTransactionsData();
 
   return (
-    <div className="p-8 bg-[var(--color-bg-primary)] min-h-screen">
+    <div className="p-4 md:p-6 bg-gradient-to-br from-gray-800 to-purple-300 min-h-screen">
       <div className="max-w-[1600px] mx-auto">
         <TransactionsFilters
           search={search}

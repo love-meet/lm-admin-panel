@@ -228,7 +228,7 @@ const Reports = () => {
   };
 
   return (
-    <div className="p-8 bg-[var(--color-bg-primary)] min-h-screen">
+    <div className="p-4 md:p-6 bg-gradient-to-br from-gray-800 to-purple-300 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[var(--color-text-primary)] mb-2">
@@ -244,7 +244,7 @@ const Reports = () => {
         {loading && (
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 mx-auto mb-4"></div>
               <p className="text-[var(--color-text-secondary)]">Loading reports data...</p>
             </div>
           </div>
@@ -252,15 +252,15 @@ const Reports = () => {
 
         {/* Reports Table */}
         {!loading && (
-          <div className="bg-[var(--color-bg-secondary)] rounded-lg shadow-md overflow-hidden">
+          <div className="bg-gradient-to-br from-gray-900 to-purple-200 rounded-lg shadow-md overflow-hidden">
             <div className="p-4">
               <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-4">
                 Daily Reports
               </h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[var(--color-bg-tertiary)]">
-                <thead className="bg-[var(--color-bg-secondary)]">
+              <table className="min-w-full divide-y divide-gray-800">
+                <thead className="bg-gray-800">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">
                       Date
@@ -282,10 +282,10 @@ const Reports = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-bg-tertiary)]">
+                <tbody className="bg-gray-800 divide-y divide-gray-700">
                   {reportsData.length > 0 ? (
                     reportsData.map((report, index) => (
-                      <tr key={report.date || index} className="hover:bg-[var(--color-bg-tertiary)] transition-colors">
+                      <tr key={report.date || index} className="hover:bg-gray-700 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-text-primary)]">
                           {report.date ? new Date(report.date).toLocaleDateString('en-US', { timeZone: 'UTC' }) : 'N/A'}
                         </td>

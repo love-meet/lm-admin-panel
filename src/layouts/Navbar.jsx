@@ -52,12 +52,12 @@ const Navbar = () => {
   const [avatarIdx, setAvatarIdx] = useState(0);
 
   return (
-    <nav className="fixed top-0 left-64 right-0 h-16 bg-[var(--color-bg-secondary)] px-4 border-b border-[var(--color-bg-tertiary)] flex justify-between items-center z-50 overflow-x-auto overflow-y-hidden">
+    <nav className="fixed top-0 left-64 right-0 h-16 bg-gray-800 px-4 border-b border-gray-700 flex justify-between items-center z-50 overflow-x-auto overflow-y-hidden">
       <div className="relative">
         <input
           type="text"
           placeholder="Search..."
-          className="bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded-full px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-cyan)]"
+          className="bg-gray-700 text-[var(--color-text-primary)] rounded-full px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-cyan)]"
         />
       </div>
       <div className="flex items-center space-x-6">
@@ -85,7 +85,7 @@ const Navbar = () => {
                         onClick={() => setBellOpen(false)}
                       >
                         <span className="text-[var(--color-text-primary)]">{n.label}</span>
-                        <span className="ml-3 inline-flex items-center justify-center text-xs text-white bg-[var(--color-primary-cyan)] rounded-full px-2 py-0.5">
+                        <span className="ml-3 inline-flex items-center justify-center text-xs text-white bg-gray-700 rounded-full px-2 py-0.5">
                           {n.count}
                         </span>
                       </Link>

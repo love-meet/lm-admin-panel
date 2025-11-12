@@ -149,7 +149,7 @@ export default function Admins() {
   };
 
   return (
-    <div className="p-8 bg-[var(--color-bg-primary)] min-h-screen">
+    <div className="p-8 bg-gradient-to-br from-gray-800 to-purple-300 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold text-[var(--color-text-primary)]">Admin Management</h2>
         <button
@@ -159,9 +159,9 @@ export default function Admins() {
           Create New Admin
         </button>
       </div>
-      <div className="bg-[var(--color-bg-secondary)] rounded-lg shadow-md overflow-hidden">
-        <table className="min-w-full divide-y divide-[var(--color-bg-tertiary)]">
-          <thead className="bg-[var(--color-bg-secondary)]">
+      <div className="bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-700">
+          <thead className="bg-gray-800">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">
                 Admin ID
@@ -186,7 +186,7 @@ export default function Admins() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-bg-tertiary)]">
+          <tbody className="bg-gray-800 divide-y divide-gray-700">
             {loading ? (
               <tr>
                 <td colSpan="7" className="px-6 py-4 text-center text-[var(--color-text-secondary)]">
@@ -201,7 +201,7 @@ export default function Admins() {
               </tr>
             ) : (
               paginatedAdmins.map((admin) => (
-                <tr key={admin._id || admin.id || `admin-${Math.random()}`} className="hover:bg-[var(--color-bg-tertiary)] transition-colors">
+                <tr key={admin._id || admin.id || `admin-${Math.random()}`} className="hover:bg-gray-700 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-primary)]" title={admin._id}>{admin._id ? `${admin._id.substring(0, 8)}...` : 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-text-primary)]">{admin.username}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-secondary)]">{admin.email}</td>

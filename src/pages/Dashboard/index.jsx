@@ -46,11 +46,11 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-4 md:p-6 bg-[var(--color-bg-primary)] min-h-screen">
+    <div className="p-4 md:p-6 bg-gradient-to-br from-gray-800 to-purple-300 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 md:mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">Dashboard</h2>
-          <p className="text-[var(--color-text-secondary)]">
+          <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-orange-500 to-orange-400 bg-clip-text text-transparent">Dashboard</h2>
+          <p className="text-white-400 mt-1">
             Welcome back! Here's an overview of the system.
           </p>
         </div>

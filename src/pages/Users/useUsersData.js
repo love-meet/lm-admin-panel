@@ -10,7 +10,7 @@ const useUsersData = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
   const [sortBy, setSortBy] = useState('newest');
   const [planFilter, setPlanFilter] = useState('all');
   const [verifiedFilter, setVerifiedFilter] = useState('all');
@@ -92,7 +92,7 @@ const useUsersData = () => {
     const raw = u?.raw || u;
     const val = Number(raw?.balance ?? u?.balance ?? 0) || 0;
     const isNigeria = raw?.country === 'Nigeria';
-    const symbol =  '$';
+    const symbol = '$';
     return `${symbol}${new Intl.NumberFormat(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val)}`;
   };
 
@@ -100,30 +100,75 @@ const useUsersData = () => {
     setUsers((prev) => prev.map((u) => (u.id === payload.id ? { ...u, ...payload } : u)));
   };
 
-  // Fetch users from API
+  // Fetch ALL users from API (all pages)
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await adminApi.getAllUsers();
-        // Normalize response shapes:
-        // 1) interceptor returns array -> res === [..]
-        // 2) interceptor returns payload -> res === { data: [...], message }
-        // 3) full axios response -> res.data === { data: [...] }
-        let list = [];
-        if (Array.isArray(res)) {
-          list = res;
-        } else if (Array.isArray(res?.data)) {
-          list = res.data;
-        } else if (Array.isArray(res?.data?.data)) {
-          list = res.data.data;
-        } else if (Array.isArray(res?.users)) {
-          list = res.users;
-        } else if (Array.isArray(res?.data?.users)) {
-          list = res.data.users;
+        let allUsers = [];
+        let page = 1;
+        let hasMore = true;
+
+        // Fetch all pages
+        while (hasMore) {
+          const res = await adminApi.getAllUsers({ page, limit: 100 });
+          
+          let list = [];
+          let paginationInfo = null;
+
+          // Normalize response shapes
+          if (Array.isArray(res)) {
+            list = res;
+          } else if (res?.data) {
+            // Check for pagination info
+            if (res.pagination) {
+              paginationInfo = res.pagination;
+            } else if (res.data?.pagination) {
+              paginationInfo = res.data.pagination;
+            }
+
+            // Extract user list
+            if (Array.isArray(res.data)) {
+              list = res.data;
+            } else if (Array.isArray(res.data?.data)) {
+              list = res.data.data;
+            } else if (Array.isArray(res.data?.users)) {
+              list = res.data.users;
+            }
+          } else if (Array.isArray(res?.users)) {
+            list = res.users;
+          }
+
+          if (list.length > 0) {
+            allUsers = allUsers.concat(list);
+            
+            // Check if there are more pages
+            if (paginationInfo) {
+              const totalPages = paginationInfo.totalPages;
+              if (totalPages && page >= totalPages) {
+                hasMore = false;
+              } else {
+                page++;
+              }
+            } else if (list.length < 100) {
+              // If we got less than the limit, assume no more pages
+              hasMore = false;
+            } else {
+              page++;
+            }
+          } else {
+            hasMore = false;
+          }
+
+          // Safety check to prevent infinite loop
+          if (page > 500) {
+            console.warn('Reached page limit of 500, stopping fetch');
+            break;
+          }
         }
 
-        setUsers(list.length ? list.map(toShape) : []);
+        console.log(`[users] Fetched ${allUsers.length} total users from ${page - 1} pages`);
+        setUsers(allUsers.length ? allUsers.map(toShape) : []);
 
       } catch (err) {
         console.error('[users] fetch error', err);
@@ -308,6 +353,18 @@ const useUsersData = () => {
   }, [filteredAndSortedUsers, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredAndSortedUsers.length / itemsPerPage);
+
+  // Ensure currentPage remains valid when filters/search change.
+  // If the available totalPages drops below the current page, clamp it.
+  useEffect(() => {
+    if (totalPages <= 0) {
+      if (currentPage !== 1) setCurrentPage(1);
+      return;
+    }
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
 
   return {
     users,

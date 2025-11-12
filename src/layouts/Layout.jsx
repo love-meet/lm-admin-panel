@@ -5,7 +5,7 @@ import Navbar from './Navbar';
 
 const Layout = () => {
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
+    <div className="flex min-h-screen bg-gradient-to-br bg-gray-800 text-[var(--color-text-primary)]">
       <Sidebar />
       <div className="flex-1 flex flex-col ml-64">
         <Navbar />

@@ -305,7 +305,7 @@ const SupportTickets = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0e0f11] text-white p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-800 to-purple-300 text-white p-8">
       <div className="max-w-[1500px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold mb-4">Support Tickets</h2>
@@ -313,7 +313,7 @@ const SupportTickets = () => {
           {loading && (
             <div className="flex items-center justify-center py-16">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 mx-auto mb-4"></div>
                 <p className="text-gray-400">Loading support tickets...</p>
               </div>
             </div>
@@ -326,13 +326,13 @@ const SupportTickets = () => {
                   onClick={() => setCategoryFilter('All')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     categoryFilter === 'All'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-[#1a1b1e] text-gray-300 hover:bg-[#2a2b2f]'
+                      ? 'bg-gray-700 text-white'
+                      : 'bg-gray-800 text-gray-300 hover:bg-[#2a2b2f]'
                   }`}
                 >
                   All
                 </button>
-                <div className="flex gap-1 p-1 bg-[#2a2b2f] rounded-full">
+                <div className="flex gap-1 p-1 bg-gray-800 rounded-full">
                   {[
                     { label: 'Withdrawal Issues', value: 'withdrawal' },
                     { label: 'Deposit Issues', value: 'deposit' },
@@ -343,7 +343,7 @@ const SupportTickets = () => {
                       onClick={() => setCategoryFilter(cat.label)}
                       className={`flex-1 px-3 py-2 text-sm font-medium rounded-full transition-colors ${
                         categoryFilter === cat.label
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-gray-700 text-white'
                           : 'text-gray-300 hover:text-white hover:bg-[#3a3b3f]'
                       }`}
                     >
@@ -358,7 +358,7 @@ const SupportTickets = () => {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-[#1a1b1e] border border-[#2a2b2f] text-gray-300 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="bg-gray-800 border border-[#2a2b2f] text-gray-300 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-700"
                 >
                   <option value="All">All</option>
                   <option value="open">Open</option>
@@ -411,13 +411,13 @@ const SupportTickets = () => {
             ))}
 
           {!loading && filteredTickets.length === 0 && (
-            <div className="text-gray-500 text-center py-10">
+            <div className="text-white-500 text-center py-10">
               No tickets found matching the selected filters.
             </div>
           )}
         </div>
 
-        <div className="bg-[#1a1b1e] rounded-xl flex flex-col h-[80vh]">
+        <div className="bg-gray-700 rounded-xl flex flex-col h-[80vh]">
           {!current ? (
             <div className="flex flex-col justify-center items-center flex-1 text-gray-400">
               <FiMessageSquare className="text-5xl mb-3" />
