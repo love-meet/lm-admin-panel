@@ -30,7 +30,7 @@ const UsersTable = ({
     <div className="relative">
       <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-transparent hover:border-white/10">
         <table className="min-w-full divide-y divide-[var(--color-bg-tertiary)]">
-          <thead className="bg-transparent">
+          <thead className="bg-gray">
         <tr>
           <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">
             User ID
@@ -127,7 +127,7 @@ const UsersTable = ({
                   <FiMoreVertical className="w-5 h-5 text-[var(--color-text-secondary)]" />
                 </button>
                 {openMenuId === user.id && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-gray-800/95 backdrop-blur rounded-lg shadow-2xl z-50 flex flex-col divide-y divide-[var(--color-border)] overflow-hidden animate-fadeIn border border-transparent">
+                  <div className="relative overflow-visible right-0 mt-2 w-56 bg-white/95 dark:bg-gray-800/95 backdrop-blur rounded-lg shadow-2xl z-50 flex flex-col divide-y divide-[var(--color-border)] overflow-hidden animate-fadeIn border border-transparent">
                     <button
                           onClick={() => { handleView(user); setOpenMenuId(null); }}
                           className="block w-full text-left px-4 py-3 text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)] flex items-center gap-2 transition-colors"

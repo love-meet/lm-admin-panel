@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Modal from './Modal';
 import adminApi from '../api/admin';
 import { toast } from 'sonner';
-import { FiCopy, FiEdit2 } from 'react-icons/fi';
+import { FiCopy, FiEdit2, FiUser, FiMail, FiDollarSign, FiCalendar, FiMapPin, FiHeart, FiShield } from 'react-icons/fi';
 
 const truncateMiddle = (s, head = 6, tail = 4) => {
   if (!s) return '';
@@ -56,7 +56,6 @@ export default function UserModal() {
 
   useEffect(() => {
     const onPop = () => setUserId(readQuery());
-    // initial
     const initial = readQuery();
     console.debug('[UserModal] initial query user ->', initial);
     setUserId(initial);
@@ -79,7 +78,6 @@ export default function UserModal() {
         else if (res?.user) details = res.user;
         else if (res?.data) details = res.data;
         else details = res;
-        // reuse toShape-like minimal normalization
         const id = details?.userId || details?._id || details?.id || userId;
         const username = details?.username || (details?.email ? details.email.split('@')[0] : '');
         const first = details?.firstName || details?.first || '';
@@ -145,7 +143,6 @@ export default function UserModal() {
       setUser(null);
       setEditing(false);
     } catch (e) {
-      // fallback
       window.history.pushState({}, '', window.location.pathname);
       setUserId(null);
       setUser(null);
@@ -172,7 +169,6 @@ export default function UserModal() {
         username: formState.username,
         email: formState.email,
         subscriptionPlan: formState.subscriptionPlan,
-        // backend expects isVerified/profileVerification flags
         isVerified: !!formState.verified,
         profileVerification: !!formState.verified,
         bio: formState.bio,
@@ -193,10 +189,8 @@ export default function UserModal() {
       const res = await adminApi.updateUser(userId, body);
       const updated = res?.user || res?.data || res?.updatedUser || res;
       if (updated) {
-        // notify Users list to update
         window.dispatchEvent(new CustomEvent('admin:user-updated', { detail: updated }));
-        toast.success('User updated');
-        // reload details
+        toast.success('User updated successfully');
         const reloaded = await adminApi.getUserById(userId);
         let details = null;
         if (!reloaded) details = null;
@@ -249,7 +243,7 @@ export default function UserModal() {
         });
         setEditing(false);
       } else {
-        toast.success('Updated (no payload returned)');
+        toast.success('Updated successfully');
         setEditing(false);
       }
     } catch (err) {
@@ -261,17 +255,39 @@ export default function UserModal() {
   };
 
   const footer = (
-    <>
-      <button onClick={close} className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] hover:opacity-90">Close</button>
+    <div className="flex items-center justify-end gap-3">
+      <button 
+        onClick={close} 
+        className="px-6 py-2.5 rounded-xl bg-gray-700/50 hover:bg-gray-700 text-white font-medium transition-all duration-200 hover:scale-105"
+      >
+        Close
+      </button>
       {!editing ? (
-        <button onClick={onEditToggle} className="px-4 py-2 rounded-lg bg-[var(--color-primary-cyan)] text-white">Edit</button>
+        <button 
+          onClick={onEditToggle} 
+          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-violet-500/50 flex items-center gap-2"
+        >
+          <FiEdit2 className="w-4 h-4" />
+          Edit Profile
+        </button>
       ) : (
         <>
-          <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)]">Cancel</button>
-          <button onClick={save} className="px-4 py-2 rounded-lg bg-[var(--color-accent-green)] text-white">Save</button>
+          <button 
+            onClick={() => setEditing(false)} 
+            className="px-6 py-2.5 rounded-xl bg-gray-700/50 hover:bg-gray-700 text-white font-medium transition-all duration-200 hover:scale-105"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={save} 
+            disabled={loading}
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
         </>
       )}
-    </>
+    </div>
   );
 
   return (
@@ -283,52 +299,117 @@ export default function UserModal() {
       footer={footer}
     >
       {loading ? (
-        <div className="py-6 text-center text-[var(--color-text-secondary)]">Loading...</div>
+        <div className="py-12 text-center">
+          <div className="inline-block w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="text-gray-400">Loading user data...</div>
+        </div>
       ) : user ? (
         <div className="space-y-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {(user.profilePic || user.raw?.picture) ? (
-                <img src={user.profilePic || user.raw?.picture} alt="" className="h-12 w-12 rounded-full object-cover" />
-              ) : (
-                <div className="h-12 w-12 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center text-[var(--color-text-secondary)]"><svg className="w-6 h-6" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zM4 20c0-4 4-6 8-6s8 2 8 6v1H4v-1z" fill="currentColor"/></svg></div>
-              )}
-              <div>
-                {!editing ? (
-                  <>
-                    <div className="text-[var(--color-text-primary)] font-semibold">{user.fullName}</div>
-                    <div className="text-[var(--color-text-secondary)] text-sm">{user.email}</div>
-                  </>
+          {/* Profile Header */}
+          <div className="relative bg-gradient-to-br from-violet-600/10 via-purple-600/10 to-indigo-600/10 backdrop-blur-xl rounded-2xl p-6 border border-white/5">
+            <div className="flex items-start justify-between gap-6">
+              <div className="flex items-center gap-4">
+                {(user.profilePic || user.raw?.picture) ? (
+                  <div className="relative">
+                    <img 
+                      src={user.profilePic || user.raw?.picture} 
+                      alt={user.fullName} 
+                      className="h-20 w-20 rounded-2xl object-cover ring-4 ring-violet-500/50 shadow-lg shadow-violet-500/30" 
+                    />
+                    {user.verified && (
+                      <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full p-1.5 ring-2 ring-gray-900">
+                        <FiShield className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <div className="space-y-1">
-                    <input className="w-full px-3 py-1 rounded border" value={formState?.fullName || ''} onChange={(e) => onChange('fullName', e.target.value)} />
-                    <input className="w-full px-3 py-1 rounded border text-sm" value={formState?.email || ''} onChange={(e) => onChange('email', e.target.value)} />
+                  <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center ring-4 ring-violet-500/50 shadow-lg shadow-violet-500/30">
+                    <FiUser className="w-8 h-8 text-white" />
                   </div>
                 )}
+                <div className="flex-1 min-w-0">
+                  {!editing ? (
+                    <>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h2 className="text-2xl font-bold text-white">{user.fullName}</h2>
+                        {user.verified && (
+                          <span className="px-2 py-1 text-xs font-semibold bg-emerald-500/20 text-emerald-400 rounded-lg">Verified</span>
+                        )}
+                        {user.isDisabled && (
+                          <span className="px-2 py-1 text-xs font-semibold bg-red-500/20 text-red-400 rounded-lg">Suspended</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <FiMail className="w-4 h-4" />
+                        <span className="text-sm">{user.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-400 mt-1">
+                        <FiUser className="w-4 h-4" />
+                        <span className="text-sm">@{user.username}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-2">
+                      <input 
+                        className="w-full px-4 py-2 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                        placeholder="Full Name"
+                        value={formState?.fullName || ''} 
+                        onChange={(e) => onChange('fullName', e.target.value)} 
+                      />
+                      <input 
+                        className="w-full px-4 py-2 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                        placeholder="Email"
+                        value={formState?.email || ''} 
+                        onChange={(e) => onChange('email', e.target.value)} 
+                      />
+                      <input 
+                        className="w-full px-4 py-2 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                        placeholder="Username"
+                        value={formState?.username || ''} 
+                        onChange={(e) => onChange('username', e.target.value)} 
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-[var(--color-text-secondary)]">Balance</div>
-              <div className="text-[var(--color-text-primary)] font-semibold">{formatBalance(user)}</div>
+              <div className="text-right">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
+                  <FiDollarSign className="w-4 h-4" />
+                  <span>Balance</span>
+                </div>
+                <div className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                  {formatBalance(user)}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-4 gap-4">
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">User ID</div>
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gray-800/30 backdrop-blur-xl rounded-xl p-4 border border-gray-700/50 hover:border-violet-500/50 transition-all duration-200">
+              <div className="text-xs text-gray-400 mb-1">User ID</div>
               <div className="flex items-center gap-2">
-                <div className="text-[var(--color-text-primary)] font-mono">{truncateMiddle(user.id || user.raw?.userId)}</div>
-                <button onClick={() => copyId(user.id || user.raw?.userId)} title="Copy ID" className="p-1 rounded hover:bg-[var(--color-bg-tertiary)]">
-                  <FiCopy className="w-4 h-4 text-[var(--color-text-secondary)]" />
+                <div className="text-sm font-mono text-white truncate">{truncateMiddle(user.id || user.raw?.userId)}</div>
+                <button 
+                  onClick={() => copyId(user.id || user.raw?.userId)} 
+                  title="Copy ID" 
+                  className="p-1.5 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  <FiCopy className="w-3.5 h-3.5 text-gray-400 hover:text-white" />
                 </button>
               </div>
             </div>
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">Plan</div>
+
+            <div className="bg-gray-800/30 backdrop-blur-xl rounded-xl p-4 border border-gray-700/50 hover:border-violet-500/50 transition-all duration-200">
+              <div className="text-xs text-gray-400 mb-1">Subscription Plan</div>
               {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.subscriptionPlan}{user.raw?.subscriptionPlan && typeof user.raw.subscriptionPlan === 'object' ? ` • ${user.raw.subscriptionPlan.planName || ''}` : ''}</div>
+                <div className="text-sm font-semibold text-white">{user.subscriptionPlan}</div>
               ) : (
-                <select className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.subscriptionPlan} onChange={(e) => onChange('subscriptionPlan', e.target.value)}>
+                <select 
+                  className="w-full px-3 py-1.5 rounded-lg bg-gray-800/50 border border-gray-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all appearance-none"
+                  value={formState?.subscriptionPlan} 
+                  onChange={(e) => onChange('subscriptionPlan', e.target.value)}
+                >
                   <option value="Free">Free</option>
                   <option value="Orbit">Orbit</option>
                   <option value="Starlight">Starlight</option>
@@ -340,162 +421,409 @@ export default function UserModal() {
                 </select>
               )}
             </div>
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">Status</div>
+
+            <div className="bg-gray-800/30 backdrop-blur-xl rounded-xl p-4 border border-gray-700/50 hover:border-violet-500/50 transition-all duration-200">
+              <div className="text-xs text-gray-400 mb-1">Status</div>
               {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.isDisabled ? 'Suspended' : user.verified ? 'Verified' : 'Active'}</div>
+                <div className="text-sm font-semibold text-white">
+                  {user.isDisabled ? '🔴 Suspended' : user.verified ? '✅ Verified' : '⚪ Active'}
+                </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <label className="text-sm">Verified</label>
-                  <input type="checkbox" checked={!!formState?.verified} onChange={(e) => onChange('verified', e.target.checked)} />
+                  <input 
+                    type="checkbox" 
+                    id="verified"
+                    checked={!!formState?.verified} 
+                    onChange={(e) => onChange('verified', e.target.checked)}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-violet-600 focus:ring-2 focus:ring-violet-500"
+                  />
+                  <label htmlFor="verified" className="text-sm text-white cursor-pointer">Verified</label>
                 </div>
               )}
             </div>
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">Active</div>
-              <div className="text-[var(--color-text-primary)]">{user.raw?.active !== false ? 'Yes' : 'No'}</div>
+
+            <div className="bg-gray-800/30 backdrop-blur-xl rounded-xl p-4 border border-gray-700/50 hover:border-violet-500/50 transition-all duration-200">
+              <div className="text-xs text-gray-400 mb-1">Date Joined</div>
+              <div className="text-sm font-semibold text-white">{user.dateJoined}</div>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">Full Name</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.fullName}</div>
-              ) : (
-                <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.fullName || ''} onChange={(e) => onChange('fullName', e.target.value)} />
-              )}
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Username</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.username || user.raw?.username}</div>
-              ) : (
-                <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.username || ''} onChange={(e) => onChange('username', e.target.value)} />
-              )}
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Referral Code</div>
-              <div className="text-[var(--color-text-primary)]">{user.raw?.referralCode || ''}</div>
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Gender</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.raw?.gender || ''}</div>
-              ) : (
-                <select className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.gender || ''} onChange={(e) => onChange('gender', e.target.value)}>
-                  <option value="">Select Gender</option>
-                  <option value="Man">Man</option>
-                  <option value="Woman">Woman</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Other">Other</option>
-                </select>
-              )}
-            </div>
+          {/* Personal Information */}
+          <div className="bg-gray-800/30 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <FiUser className="w-5 h-5 text-violet-400" />
+              Personal Information
+            </h3>
+            <div className="grid lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Gender</label>
+                  {!editing ? (
+                    <div className="text-white">{user.raw?.gender || 'Not specified'}</div>
+                  ) : (
+                    <select 
+                      className="w-full px-4 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all appearance-none"
+                      value={formState?.gender || ''} 
+                      onChange={(e) => onChange('gender', e.target.value)}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Man">Man</option>
+                      <option value="Woman">Woman</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  )}
+                </div>
 
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">Location</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{[user.raw?.city, user.raw?.state, user.raw?.country].filter(Boolean).join(', ')}</div>
-              ) : (
-                <div className="space-y-1">
-                  <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="City" value={formState?.city || ''} onChange={(e) => onChange('city', e.target.value)} />
-                  <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="State" value={formState?.state || ''} onChange={(e) => onChange('state', e.target.value)} />
-                  <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="Country" value={formState?.country || ''} onChange={(e) => onChange('country', e.target.value)} />
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Date of Birth</label>
+                  {!editing ? (
+                    <div className="text-white">{user.raw?.dateOfBirth ? new Date(user.raw.dateOfBirth).toLocaleDateString() : 'Not specified'}</div>
+                  ) : (
+                    <input 
+                      type="date" 
+                      className="w-full px-4 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                      value={formState?.dateOfBirth || ''} 
+                      onChange={(e) => onChange('dateOfBirth', e.target.value)} 
+                    />
+                  )}
                 </div>
-              )}
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Distance</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.raw?.distance ?? ''} km</div>
-              ) : (
-                <input type="number" className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.distance || 50} onChange={(e) => onChange('distance', parseInt(e.target.value))} />
-              )}
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Show Distance / Online</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.raw?.showDistance ? 'Yes' : 'No'} / {user.raw?.showOnlineStatus ? 'Yes' : 'No'}</div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <label className="text-sm">Distance</label>
-                  <input type="checkbox" checked={!!formState?.showDistance} onChange={(e) => onChange('showDistance', e.target.checked)} />
-                  <label className="text-sm">Online</label>
-                  <input type="checkbox" checked={!!formState?.showOnlineStatus} onChange={(e) => onChange('showOnlineStatus', e.target.checked)} />
-                </div>
-              )}
-            </div>
 
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">Date of Birth</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.raw?.dateOfBirth ? new Date(user.raw.dateOfBirth).toLocaleDateString() : ''}</div>
-              ) : (
-                <input type="date" className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.dateOfBirth || ''} onChange={(e) => onChange('dateOfBirth', e.target.value)} />
-              )}
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Age Range</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.raw?.ageRange ? `${user.raw.ageRange.start}-${user.raw.ageRange.end}` : ''}</div>
-              ) : (
-                <div className="flex gap-1">
-                  <input type="number" placeholder="Min" className="w-16 px-2 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.ageRange?.start || 18} onChange={(e) => onChange('ageRange', { ...formState.ageRange, start: parseInt(e.target.value) })} />
-                  <span className="text-[var(--color-text-primary)]">-</span>
-                  <input type="number" placeholder="Max" className="w-16 px-2 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" value={formState?.ageRange?.end || 35} onChange={(e) => onChange('ageRange', { ...formState.ageRange, end: parseInt(e.target.value) })} />
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Age Range Preference</label>
+                  {!editing ? (
+                    <div className="text-white">{user.raw?.ageRange ? `${user.raw.ageRange.start} - ${user.raw.ageRange.end} years` : 'Not specified'}</div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="number" 
+                        placeholder="Min" 
+                        className="w-20 px-3 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white text-center focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                        value={formState?.ageRange?.start || 18} 
+                        onChange={(e) => onChange('ageRange', { ...formState.ageRange, start: parseInt(e.target.value) })} 
+                      />
+                      <span className="text-gray-400">to</span>
+                      <input 
+                        type="number" 
+                        placeholder="Max" 
+                        className="w-20 px-3 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white text-center focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                        value={formState?.ageRange?.end || 35} 
+                        onChange={(e) => onChange('ageRange', { ...formState.ageRange, end: parseInt(e.target.value) })} 
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Can Withdraw</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.raw?.canWithdraw ? 'Yes' : 'No'}</div>
-              ) : (
-                <input type="checkbox" checked={!!formState?.canWithdraw} onChange={(e) => onChange('canWithdraw', e.target.checked)} />
-              )}
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Referral Code</label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 px-4 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white font-mono">
+                      {user.raw?.referralCode || 'Not available'}
+                    </div>
+                    {user.raw?.referralCode && (
+                      <button 
+                        onClick={() => copyId(user.raw?.referralCode)} 
+                        className="p-2.5 rounded-xl bg-gray-700/50 hover:bg-gray-700 transition-colors"
+                      >
+                        <FiCopy className="w-4 h-4 text-gray-400" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Can Withdraw</label>
+                  {!editing ? (
+                    <div className="text-white">{user.raw?.canWithdraw ? '✅ Yes' : '❌ No'}</div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="canWithdraw"
+                        checked={!!formState?.canWithdraw} 
+                        onChange={(e) => onChange('canWithdraw', e.target.checked)}
+                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-violet-600 focus:ring-2 focus:ring-violet-500"
+                      />
+                      <label htmlFor="canWithdraw" className="text-sm text-white cursor-pointer">Allow withdrawals</label>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Account Disabled</label>
+                  {!editing ? (
+                    <div className="text-white">{user.raw?.isDisabled ? '🔴 Yes' : '✅ No'}</div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="isDisabled"
+                        checked={!!formState?.isDisabled} 
+                        onChange={(e) => onChange('isDisabled', e.target.checked)}
+                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-red-600 focus:ring-2 focus:ring-red-500"
+                      />
+                      <label htmlFor="isDisabled" className="text-sm text-white cursor-pointer">Disable account</label>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">Bio</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.raw?.bio || ''}</div>
-              ) : (
-                <textarea className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" rows="3" value={formState?.bio || ''} onChange={(e) => onChange('bio', e.target.value)} />
-              )}
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Hobbies</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{Array.isArray(user.raw?.hobbies) ? user.raw.hobbies.join(', ') : ''}</div>
-              ) : (
-                <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="Comma separated" value={formState?.hobbies?.join(', ') || ''} onChange={(e) => onArrayChange('hobbies', e.target.value)} />
-              )}
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Interests</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{Array.isArray(user.raw?.interests) ? user.raw.interests.join(', ') : ''}</div>
-              ) : (
-                <input className="w-full px-3 py-1 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-bg-tertiary)]" placeholder="Comma separated" value={formState?.interests?.join(', ') || ''} onChange={(e) => onArrayChange('interests', e.target.value)} />
-              )}
-            </div>
+          {/* Location Information */}
+          <div className="bg-gray-800/30 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <FiMapPin className="w-5 h-5 text-violet-400" />
+              Location & Preferences
+            </h3>
+            <div className="grid lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Location</label>
+                  {!editing ? (
+                    <div className="text-white">{[user.raw?.city, user.raw?.state, user
+                      .raw?.country].filter(Boolean).join(', ') || 'Not specified'}</div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input 
+                        className="w-full px-4 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                        placeholder="City" 
+                        value={formState?.city || ''} 
+                        onChange={(e) => onChange('city', e.target.value)} 
+                      />
+                      <input 
+                        className="w-full px-4 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                        placeholder="State" 
+                        value={formState?.state || ''} 
+                        onChange={(e) => onChange('state', e.target.value)} 
+                      />
+                      <input 
+                        className="w-full px-4 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                        placeholder="Country" 
+                        value={formState?.country || ''} 
+                        onChange={(e) => onChange('country', e.target.value)} 
+                      />
+                    </div>
+                  )}
+                </div>
 
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">Affiliates</div>
-              <div className="text-[var(--color-text-primary)]">{Array.isArray(user.raw?.affiliates) ? user.raw.affiliates.join(', ') : ''}</div>
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Blocked Users</div>
-              <div className="text-[var(--color-text-primary)]">{Array.isArray(user.raw?.blockedUsers) ? user.raw.blockedUsers.join(', ') : ''}</div>
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Profile Verification</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.raw?.profileVerification ? 'Yes' : 'No'}</div>
-              ) : (
-                <input type="checkbox" checked={!!formState?.profileVerification} onChange={(e) => onChange('profileVerification', e.target.checked)} />
-              )}
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Disabled</div>
-              {!editing ? (
-                <div className="text-[var(--color-text-primary)]">{user.raw?.isDisabled ? 'Yes' : 'No'}</div>
-              ) : (
-                <input type="checkbox" checked={!!formState?.isDisabled} onChange={(e) => onChange('isDisabled', e.target.checked)} />
-              )}
-            </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Search Distance</label>
+                  {!editing ? (
+                    <div className="text-white">{user.raw?.distance ?? 50} km</div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="number" 
+                        className="flex-1 px-4 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                        value={formState?.distance || 50} 
+                        onChange={(e) => onChange('distance', parseInt(e.target.value))} 
+                      />
+                      <span className="text-gray-400">km</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            <div className="bg-[var(--color-bg-tertiary)] rounded-lg p-4">
-              <div className="text-xs text-[var(--color-text-secondary)]">Created At</div>
-              <div className="text-[var(--color-text-primary)]">{user.raw?.createdAt ? new Date(user.raw.createdAt).toLocaleString() : ''}</div>
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Updated At</div>
-              <div className="text-[var(--color-text-primary)]">{user.raw?.updatedAt ? new Date(user.raw.updatedAt).toLocaleString() : ''}</div>
-              <div className="text-xs text-[var(--color-text-secondary)] mt-2">Date Joined</div>
-              <div className="text-[var(--color-text-primary)]">{user.raw?.dateJoined ? new Date(user.raw.dateJoined).toLocaleString() : ''}</div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Privacy Settings</label>
+                  {!editing ? (
+                    <div className="space-y-2">
+                      <div className="text-white">Show Distance: {user.raw?.showDistance ? '✅ Yes' : '❌ No'}</div>
+                      <div className="text-white">Show Online Status: {user.raw?.showOnlineStatus ? '✅ Yes' : '❌ No'}</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          id="showDistance"
+                          checked={!!formState?.showDistance} 
+                          onChange={(e) => onChange('showDistance', e.target.checked)}
+                          className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-violet-600 focus:ring-2 focus:ring-violet-500"
+                        />
+                        <label htmlFor="showDistance" className="text-sm text-white cursor-pointer">Show distance to others</label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          id="showOnlineStatus"
+                          checked={!!formState?.showOnlineStatus} 
+                          onChange={(e) => onChange('showOnlineStatus', e.target.checked)}
+                          className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-violet-600 focus:ring-2 focus:ring-violet-500"
+                        />
+                        <label htmlFor="showOnlineStatus" className="text-sm text-white cursor-pointer">Show online status</label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bio & Interests */}
+          <div className="bg-gray-800/30 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <FiHeart className="w-5 h-5 text-violet-400" />
+              Bio & Interests
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">Bio</label>
+                {!editing ? (
+                  <div className="text-white whitespace-pre-wrap">{user.raw?.bio || 'No bio added yet'}</div>
+                ) : (
+                  <textarea 
+                    className="w-full px-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none" 
+                    rows="4" 
+                    placeholder="Write a bio..."
+                    value={formState?.bio || ''} 
+                    onChange={(e) => onChange('bio', e.target.value)} 
+                  />
+                )}
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Hobbies</label>
+                  {!editing ? (
+                    <div className="flex flex-wrap gap-2">
+                      {Array.isArray(user.raw?.hobbies) && user.raw.hobbies.length > 0 ? (
+                        user.raw.hobbies.map((hobby, idx) => (
+                          <span key={idx} className="px-3 py-1.5 bg-violet-500/20 text-violet-300 rounded-lg text-sm">
+                            {hobby}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-500">No hobbies added</span>
+                      )}
+                    </div>
+                  ) : (
+                    <input 
+                      className="w-full px-4 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                      placeholder="Comma separated (e.g., Reading, Gaming, Cooking)" 
+                      value={formState?.hobbies?.join(', ') || ''} 
+                      onChange={(e) => onArrayChange('hobbies', e.target.value)} 
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Interests</label>
+                  {!editing ? (
+                    <div className="flex flex-wrap gap-2">
+                      {Array.isArray(user.raw?.interests) && user.raw.interests.length > 0 ? (
+                        user.raw.interests.map((interest, idx) => (
+                          <span key={idx} className="px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg text-sm">
+                            {interest}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-500">No interests added</span>
+                      )}
+                    </div>
+                  ) : (
+                    <input 
+                      className="w-full px-4 py-2.5 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all" 
+                      placeholder="Comma separated (e.g., Music, Travel, Sports)" 
+                      value={formState?.interests?.join(', ') || ''} 
+                      onChange={(e) => onArrayChange('interests', e.target.value)} 
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Information */}
+          <div className="bg-gray-800/30 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <FiCalendar className="w-5 h-5 text-violet-400" />
+              Additional Information
+            </h3>
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">Affiliates</label>
+                <div className="text-white">
+                  {Array.isArray(user.raw?.affiliates) && user.raw.affiliates.length > 0 
+                    ? user.raw.affiliates.join(', ') 
+                    : 'None'}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">Blocked Users</label>
+                <div className="text-white">
+                  {Array.isArray(user.raw?.blockedUsers) && user.raw.blockedUsers.length > 0 
+                    ? user.raw.blockedUsers.length 
+                    : '0'} users
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">Profile Verification</label>
+                {!editing ? (
+                  <div className="text-white">{user.raw?.profileVerification ? '✅ Verified' : '⏳ Pending'}</div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="profileVerification"
+                      checked={!!formState?.profileVerification} 
+                      onChange={(e) => onChange('profileVerification', e.target.checked)}
+                      className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-violet-600 focus:ring-2 focus:ring-violet-500"
+                    />
+                    <label htmlFor="profileVerification" className="text-sm text-white cursor-pointer">Profile verified</label>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Timestamps */}
+          <div className="bg-gray-800/30 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50">
+            <h3 className="text-lg font-bold text-white mb-4">Timestamps</h3>
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">Account Created</label>
+                <div className="text-white text-sm">
+                  {user.raw?.createdAt ? new Date(user.raw.createdAt).toLocaleString('en-US', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                  }) : 'Not available'}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">Last Updated</label>
+                <div className="text-white text-sm">
+                  {user.raw?.updatedAt ? new Date(user.raw.updatedAt).toLocaleString('en-US', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                  }) : 'Not available'}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">Date Joined</label>
+                <div className="text-white text-sm">
+                  {user.raw?.dateJoined ? new Date(user.raw.dateJoined).toLocaleString('en-US', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                  }) : 'Not available'}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="py-6 text-center text-[var(--color-text-secondary)]">No user selected</div>
+        <div className="py-12 text-center">
+          <div className="text-gray-400 mb-2">No user selected</div>
+          <div className="text-sm text-gray-500">Select a user from the list to view their profile</div>
+        </div>
       )}
     </Modal>
   );

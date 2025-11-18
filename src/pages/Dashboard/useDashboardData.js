@@ -7,7 +7,10 @@ const useDashboardData = () => {
       totalUsers: 0,
       postsToday: 0,
       totalRevenue: 0,
-      newSignups: 0
+      newSignups: 0,
+      maleUsers: 0,
+      femaleUsers: 0,
+      activeUsers: 0
     }
   });
   const [summaryLoading, setSummaryLoading] = useState(true);
@@ -29,16 +32,53 @@ const useDashboardData = () => {
           totalUsers: 0,
           postsToday: 0,
           totalRevenue: 0,
-          newSignups: 0
+          newSignups: 0,
+          maleUsers: 0,
+          femaleUsers: 0,
+          activeUsers: 0
         };
 
-        if (summaryResponse?.data && typeof summaryResponse.data === 'object') {
-          dashboardData = { ...dashboardData, ...summaryResponse.data };
-        } else if (summaryResponse && typeof summaryResponse === 'object') {
-          dashboardData = { ...dashboardData, ...summaryResponse };
-        }
+        
+        const payload = summaryResponse?.data && typeof summaryResponse.data === 'object'
+          ? summaryResponse.data
+          : (summaryResponse && typeof summaryResponse === 'object' ? summaryResponse : {});
+
+        dashboardData = {
+          ...dashboardData,
+          totalUsers: payload.totalUsers ?? payload.total_users ?? payload.users_total ?? dashboardData.totalUsers,
+          postsToday: payload.postsToday ?? payload.posts_today ?? payload.posts_today_count ?? dashboardData.postsToday,
+          totalRevenue: payload.totalRevenue ?? payload.total_revenue ?? payload.revenue_total ?? dashboardData.totalRevenue,
+          newSignups: payload.newSignups ?? payload.new_signups ?? payload.signups ?? dashboardData.newSignups,
+          activeUsers: payload.activeUsers ?? payload.active_users ?? payload.active_count ?? payload.activeUsersToday ?? payload.active_users_today ?? dashboardData.activeUsers
+        };
 
         setSummary({ data: dashboardData });
+
+        // Fetch male users count
+        try {
+          const maleUsersResponse = await adminApi.getDashboardMaleUsers();
+          console.log('Male users response:', maleUsersResponse);
+          const maleCount = maleUsersResponse?.data?.count ?? maleUsersResponse?.count ?? 0;
+          dashboardData = { ...dashboardData, maleUsers: maleCount };
+          setSummary({ data: dashboardData });
+        } catch (maleErr) {
+          console.error('Male users fetch error:', maleErr);
+          dashboardData = { ...dashboardData, maleUsers: 0 };
+          setSummary({ data: dashboardData });
+        }
+
+        // Fetch female users count
+        try {
+          const femaleUsersResponse = await adminApi.getDashboardFemaleUsers();
+          console.log('Female users response:', femaleUsersResponse);
+          const femaleCount = femaleUsersResponse?.data?.count ?? femaleUsersResponse?.count ?? 0;
+          dashboardData = { ...dashboardData, femaleUsers: femaleCount };
+          setSummary({ data: dashboardData });
+        } catch (femaleErr) {
+          console.error('Female users fetch error:', femaleErr);
+          dashboardData = { ...dashboardData, femaleUsers: 0 };
+          setSummary({ data: dashboardData });
+        }
 
         // Fetch user growth data
         try {
@@ -64,16 +104,12 @@ const useDashboardData = () => {
         // Fetch subscription revenue data
         try {
           const revenueResponse = await adminApi.getSubscriptionRevenue();
-          console.log('Revenue API response:', revenueResponse);
 
           if (revenueResponse?.success) {
-            // Based on your API response, it returns an empty array in data
-            // The data might be in a different property or structure
             let data = [];
             if (Array.isArray(revenueResponse.data)) {
               data = revenueResponse.data;
             } else if (revenueResponse.data && typeof revenueResponse.data === 'object') {
-              // Try to extract data from object properties
               data = Object.values(revenueResponse.data).filter(Array.isArray);
               data = data.length > 0 ? data[0] : [];
             }
@@ -85,7 +121,6 @@ const useDashboardData = () => {
               }));
               setSubscriptionRevenueApiData(processedData);
             } else {
-              // If no data, still show fallback but log it
               console.log('No revenue data available, using fallback');
               setSubscriptionRevenueApiData([]);
             }

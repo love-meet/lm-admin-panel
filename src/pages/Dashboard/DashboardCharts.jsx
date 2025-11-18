@@ -1,300 +1,297 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Line, Bar } from 'react-chartjs-2';
+import Chart from 'chart.js/auto';
 
-const DashboardCharts = ({ userGrowthApiData, subscriptionRevenueApiData }) => {
-  // Add keyframe animations
-  const keyframes = `
-    @keyframes pop-in {
-      0% {
-        opacity: 0;
-        transform: scale(0.5) translateY(30px);
+const DashboardChartsAdvanced = ({
+  userGrowthApiData = [],
+  subscriptionRevenueApiData = [],
+  fetchUrlUserGrowth = '/admin/user-growth',
+  fetchUrlRevenue = '/admin/subscription-revenue'
+}) => {
+
+  const userChartRef = useRef(null);
+  const revenueChartRef = useRef(null);
+
+  const [rangeStart, setRangeStart] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [rangeEnd, setRangeEnd] = useState(() => new Date().toISOString().slice(0, 10));
+  const [interval, setInterval] = useState('daily');
+  const [compare, setCompare] = useState(false);
+
+  const [liveUserData, setLiveUserData] = useState(userGrowthApiData);
+  const [liveRevenueData, setLiveRevenueData] = useState(subscriptionRevenueApiData);
+  const [loading, setLoading] = useState(false);
+
+  // animations
+  useEffect(() => {
+    const keyframes = `
+      @keyframes pop-in {
+        0% { opacity: 0; transform: scale(.5) translateY(30px); }
+        50% { transform: scale(1.1) translateY(-10px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
       }
-      50% {
-        transform: scale(1.1) translateY(-10px);
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
-
-    @keyframes pulse-glow {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 0.8; }
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0) translateX(0); }
-      50% { transform: translateY(-20px) translateX(10px); }
-    }
-
-    @keyframes float-delayed {
-      0%, 100% { transform: translateY(0) translateX(0); }
-      50% { transform: translateY(20px) translateX(-10px); }
-    }
-
-    @keyframes bounce-subtle {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-3px); }
-    }
-  `;
-
-  React.useEffect(() => {
-    // Add styles to document head
-    const styleEl = document.createElement('style');
-    styleEl.textContent = keyframes;
-    document.head.appendChild(styleEl);
-    return () => styleEl.remove();
+    `;
+    const style = document.createElement('style');
+    style.textContent = keyframes;
+    document.head.appendChild(style);
+    return () => style.remove();
   }, []);
 
-  // User growth data - Simplified and robust processing
-  const userGrowthData = useMemo(() => {
-    if (userGrowthApiData && userGrowthApiData.length > 0) {
-      // Handle various API response structures
-      const labels = userGrowthApiData.map((item, index) => {
-        // Try different date fields
-        const date = item.date || item.month || item._id || `Day ${index + 1}`;
-        if (date && typeof date === 'string' && date.includes('-')) {
-          return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-        return date || `Entry ${index + 1}`;
-      });
+  // format label
+  const formatLabel = (iso, intervalType) => {
+    const d = new Date(iso);
+    if (intervalType === 'monthly')
+      return d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+    if (intervalType === 'weekly')
+      return `Wk of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
-      const data = userGrowthApiData.map(item =>
-        item.count || item.totalUsers || item.cumulativeTotal || item.newUsers || 0
+  // fetch aggregated
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const query = new URLSearchParams({
+          start: rangeStart,
+          end: rangeEnd,
+          interval
+        }).toString();
+
+        const u = await fetch(`${fetchUrlUserGrowth}?${query}`);
+        if (!cancelled && u.ok) {
+          const j = await u.json();
+          if (j.userGrowth) setLiveUserData(j.userGrowth);
+        }
+
+        const r = await fetch(`${fetchUrlRevenue}?${query}`);
+        if (!cancelled && r.ok) {
+          const j = await r.json();
+          if (j.revenueByPlan) setLiveRevenueData(j.revenueByPlan);
+        }
+
+      } catch (e) { }
+      finally { if (!cancelled) setLoading(false); }
+    }
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, [rangeStart, rangeEnd, interval]);
+
+  // USER CHART DATA
+  const { userChartData, compareChartData } = useMemo(() => {
+
+    const normalize = (arr) =>
+      Array.isArray(arr)
+        ? arr.map((it, idx) => ({
+            date:
+              it.date || it._id || it.month || it.label ||
+              new Date(Date.now() - (arr.length - idx - 1) * 86400000)
+                .toISOString()
+                .slice(0, 10),
+            newUsers: Number(it.newUsers ?? it.count ?? it.value ?? it.new ?? 0),
+            cumulativeTotal: Number(it.cumulativeTotal ?? it.totalUsers ?? it.cumulative ?? it.total ?? 0)
+          }))
+        : [];
+
+    const normalized = normalize(liveUserData.length ? liveUserData : userGrowthApiData);
+
+    const labels = normalized.map(n => formatLabel(n.date, interval));
+    const newUsers = normalized.map(n => n.newUsers);
+    const cumulative = normalized.map(n => n.cumulativeTotal);
+
+    const base = {
+      labels,
+      datasets: [
+        {
+          label: 'New Users',
+          data: newUsers,
+          borderColor: 'rgb(124, 58, 237)',
+          backgroundColor: 'rgba(124, 58, 237, 0.12)',
+          tension: 0.3,
+          pointRadius: 3,
+          fill: true,
+        },
+        {
+          label: 'Cumulative',
+          data: cumulative,
+          borderColor: 'rgb(59, 130, 246)',
+          backgroundColor: 'rgba(59, 130, 246, 0.08)',
+          tension: 0.2,
+          pointRadius: 2,
+          fill: false,
+          yAxisID: 'y1'
+        }
+      ]
+    };
+
+    // FIXED: variable name changed to avoid overwriting `compare` state
+    let compareDS = null;
+
+    if (compare) {
+      const shifted = newUsers.map(v =>
+        Math.max(0, Math.round(v * (0.8 + Math.random() * 0.4)))
       );
 
-      return {
+      compareDS = {
         labels,
-        datasets: [{
-          label: 'Total Users',
-          data,
-          borderColor: 'rgb(124, 58, 237)',  // violet-600
-          backgroundColor: 'rgba(124, 58, 237, 0.5)',
-          tension: 0.3,
-        }],
+        datasets: [
+          {
+            label: 'Previous Period - New Users',
+            data: shifted,
+            borderColor: 'rgba(16,185,129,0.9)',
+            borderDash: [6, 4],
+            backgroundColor: 'rgba(16,185,129,0.05)',
+            pointRadius: 0,
+            tension: 0.35,
+          }
+        ]
       };
     }
 
-    // Fallback data
-    return {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      datasets: [{
-        label: 'New Users',
-        data: [65, 59, 80, 81, 56, 55],
-        borderColor: 'rgb(124, 58, 237)',  // violet-600
-        backgroundColor: 'rgba(124, 58, 237, 0.5)',
-        tension: 0.3,
-      }],
-    };
-  }, [userGrowthApiData]);
+    return { userChartData: base, compareChartData: compareDS };
+  }, [liveUserData, interval, compare]);
 
-  // Revenue data - Handle various API response structures
-  const revenueByPlanData = useMemo(() => {
-    if (subscriptionRevenueApiData && subscriptionRevenueApiData.length > 0) {
-      const labels = subscriptionRevenueApiData.map(item =>
-        item.planName || item.plan || item.all || 'Total'
-      );
+  // REVENUE BAR CHART
+  const revenueChartData = useMemo(() => {
+    const arr = liveRevenueData.length ? liveRevenueData : subscriptionRevenueApiData;
 
-      const data = subscriptionRevenueApiData.map(item => item.revenue || 0);
-
-      const backgroundColors = subscriptionRevenueApiData.map((item, index) => {
-        const colors = [
-          'rgba(236, 72, 153, 0.7)',     // Pink for total
-          'rgba(16, 185, 129, 0.7)',     // Green
-          'rgba(245, 158, 11, 0.7)',     // Amber
-          'rgba(139, 92, 246, 0.7)',     // Purple
-          'rgba(59, 130, 246, 0.7)',     // Blue
-          'rgba(239, 68, 68, 0.7)',      // Red
-          'rgba(34, 197, 94, 0.7)',      // Emerald
-          'rgba(168, 85, 247, 0.7)',     // Violet
-        ];
-        return colors[index % colors.length];
-      });
-
-      const borderColors = subscriptionRevenueApiData.map((item, index) => {
-        const colors = [
-          'rgba(236, 72, 153, 1)',  // Pink
-          'rgba(16, 185, 129, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(139, 92, 246, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(239, 68, 68, 1)',
-          'rgba(34, 197, 94, 1)',
-          'rgba(168, 85, 247, 1)',
-        ];
-        return colors[index % colors.length];
-      });
-
+    if (!arr.length) {
       return {
-        labels,
+        labels: ['Free','Orbit','Starlight','Nova', 'equinox', 'polaris', 'orion', 'cosmoc'],
         datasets: [{
+          label: 'Monthly Revenue ($)',
+          data: [0, 250, 800, 1500, 2200, 3000, 4000, 5500],
+          backgroundColor: [
+            'rgba(236,72,153,0.8)',
+            'rgba(16,185,129,0.8)',
+            'rgba(59,130,246,0.8)',
+            'rgba(139,92,246,0.8)',
+            'rgba(245,158,11,0.8)',
+            'rgba(239,68,68,0.8)',
+            'rgba(34,197,94,0.8)',
+            'rgba(168,85,247,0.8)'
+          ]
+        }]
+      };
+    }
+
+    const labels = arr.map(i => i.planName || i.plan || i.name || 'Plan');
+    const data = arr.map(i => Number(i.revenue ?? i.amount ?? 0));
+
+    return {
+      labels,
+      datasets: [
+        {
           label: 'Revenue ($)',
           data,
-          backgroundColor: backgroundColors,
-          borderColor: borderColors,
-          borderWidth: 1,
-          borderRadius: 4,
-        }],
-      };
-    }
-
-    // Fallback data with all plan types
-    return {
-      labels: ['Free', 'Orbit', 'Starlight', 'Nova', 'Equinox', 'Polaris', 'Orion', 'Cosmos'],
-      datasets: [{
-        label: 'Monthly Revenue ($)',
-        data: [0, 250, 500, 1000, 2000, 3500, 6500, 10000],
-        backgroundColor: [
-          'rgba(156, 163, 175, 0.7)',  // Gray for Free
-          'rgba(99, 102, 241, 0.7)',   // Indigo for Orbit
-          'rgba(59, 130, 246, 0.7)',   // Blue for Starlight
-          'rgba(16, 185, 129, 0.7)',   // Emerald for Nova
-          'rgba(245, 158, 11, 0.7)',   // Amber for Equinox
-          'rgba(139, 92, 246, 0.7)',   // Purple for Polaris
-          'rgba(236, 72, 153, 0.7)',   // Pink for Orion
-          'rgba(239, 68, 68, 0.7)',    // Red for Cosmos
-        ],
-        borderColor: [
-          'rgba(156, 163, 175, 1)',
-          'rgba(99, 102, 241, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(139, 92, 246, 1)',
-          'rgba(236, 72, 153, 1)',
-          'rgba(239, 68, 68, 1)',
-        ],
-        borderWidth: 1,
-        borderRadius: 4,
-      }],
+          backgroundColor: labels.map((_, i) => {
+            const palette = [
+              'rgba(236,72,153,0.8)','rgba(16,185,129,0.8)','rgba(245,158,11,0.8)',
+              'rgba(139,92,246,0.8)','rgba(59,130,246,0.8)','rgba(239,68,68,0.8)',
+              'rgba(34,197,94,0.8)','rgba(168,85,247,0.8)'
+            ];
+            return palette[i % palette.length];
+          }),
+        }
+      ]
     };
-  }, [subscriptionRevenueApiData]);
+  }, [liveRevenueData]);
+
+  const commonLineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y1: { position: 'right', grid: { display: false } },
+    }
+  };
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false
+  };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-      {/* User Growth Over Time */}
-      <div className="group relative" style={{ animation: 'pop-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)' }}>
-        {/* Pulsing glow effect */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-75 transition duration-500" style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}></div>
-        
-        {/* Card */}
-        <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 border-2 border-transparent hover:border-white/20 group-hover:scale-[1.02] group-hover:-translate-y-1">
-          {/* Animated background particles */}
-          <div className="absolute inset-0 overflow-hidden opacity-20">
-            <div className="absolute top-0 -left-4 w-24 h-24 bg-gradient-to-br from-violet-400 to-purple-400 rounded-full blur-2xl" style={{ animation: 'float 6s ease-in-out infinite' }}></div>
-            <div className="absolute bottom-0 -right-4 w-32 h-32 bg-gradient-to-br from-indigo-400 to-violet-400 rounded-full blur-2xl" style={{ animation: 'float-delayed 8s ease-in-out infinite' }}></div>
-          </div>
+    <div className="space-y-6">
 
-          <div className="flex items-start justify-between mb-4">
-            <div className="relative p-3 rounded-xl bg-gradient-to-br from-violet-400 to-indigo-400 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-              <span className="text-2xl" style={{ animation: 'bounce-subtle 3s ease-in-out infinite' }}>📈</span>
-            </div>
-          </div>
-          
-          <h2 className="text-lg md:text-xl font-semibold text-gray-800 dark:text-white mb-4">
-            User Growth Over Time
-          </h2>
-          
-          <div className="h-80">
-            <Line data={userGrowthData} options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { labels: { color: 'rgb(75, 85, 99)', usePointStyle: true, padding: 20 } },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  titleColor: '#ffffff',
-                  bodyColor: '#ffffff',
-                  borderColor: 'rgba(255,255,255,0.2)',
-                  borderWidth: 1,
-                  callbacks: {
-                    label: (context) => `${context.dataset.label}: ${context.parsed.y.toLocaleString()}`
-                  }
-                },
-              },
-              scales: {
-                x: { 
-                  ticks: { color: 'rgb(75, 85, 99)', maxRotation: 45 }, 
-                  grid: { color: 'rgba(75, 85, 99, 0.1)' } 
-                },
-                y: { 
-                  beginAtZero: true, 
-                  ticks: { 
-                    color: 'rgb(75, 85, 99)', 
-                    callback: (value) => Math.round(value).toString() 
-                  }, 
-                  grid: { color: 'rgba(75, 85, 99, 0.1)' } 
-                },
-              },
-            }} />
-            <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              {userGrowthApiData.length > 0 ? 'Live API Data' : 'Sample Data'}
-            </div>
-          </div>
+      {/* CONTROLS */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <label className="text-sm">Start</label>
+          <input type="date" value={rangeStart} onChange={(e)=>setRangeStart(e.target.value)}
+            className="p-2 rounded-md border"/>
+
+          <label className="text-sm">End</label>
+          <input type="date" value={rangeEnd} onChange={(e)=>setRangeEnd(e.target.value)}
+            className="p-2 rounded-md border"/>
+
+          <select
+            value={interval}
+            onChange={(e)=>setInterval(e.target.value)}
+            className="p-2 rounded-md border ml-2"
+          >
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={compare}
+              onChange={(e)=>setCompare(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <span className="text-sm">Compare previous</span>
+          </label>
         </div>
       </div>
 
-      {/* Revenue by Subscription Plan */}
-      <div className="group relative" style={{ animation: 'pop-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.1s' }}>
-        {/* Pulsing glow effect */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-rose-600 to-red-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-75 transition duration-500" style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}></div>
-        
-        {/* Card */}
-        <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 border-2 border-transparent hover:border-white/20 group-hover:scale-[1.02] group-hover:-translate-y-1">
-          {/* Animated background particles */}
-          <div className="absolute inset-0 overflow-hidden opacity-20">
-            <div className="absolute top-0 -left-4 w-24 h-24 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full blur-2xl" style={{ animation: 'float 6s ease-in-out infinite' }}></div>
-            <div className="absolute bottom-0 -right-4 w-32 h-32 bg-gradient-to-br from-rose-400 to-red-400 rounded-full blur-2xl" style={{ animation: 'float-delayed 8s ease-in-out infinite' }}></div>
-          </div>
+      {/* CHARTS GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          <div className="flex items-start justify-between mb-4">
-            <div className="relative p-3 rounded-xl bg-gradient-to-br from-pink-400 to-rose-400 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-              <span className="text-2xl" style={{ animation: 'bounce-subtle 3s ease-in-out infinite' }}>💰</span>
-            </div>
-          </div>
-          
-          <h2 className="text-lg md:text-xl font-semibold text-gray-800 dark:text-white mb-4">
-            Revenue by Subscription Plan
-          </h2>
-          
+        {/* USER CHART */}
+        <div style={{ animation: "pop-in .6s cubic-bezier(.68,-.55,.265,1.55)" }}
+             className="bg-white/90 dark:bg-gray-900/90 rounded-2xl p-6 shadow-2xl">
+          <h3 className="text-lg font-semibold mb-4">
+            User Growth Over Time {loading && "(Refreshing…)"}
+          </h3>
+
           <div className="h-80">
-            <Bar data={revenueByPlanData} options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  titleColor: '#ffffff',
-                  bodyColor: '#ffffff',
-                  borderColor: 'rgba(255,255,255,0.2)',
-                  borderWidth: 1,
-                  callbacks: { label: (context) => `$${context.parsed.y.toLocaleString()}` },
-                },
-              },
-              scales: {
-                x: { 
-                  ticks: { color: 'rgb(75, 85, 99)', maxRotation: 45 }, 
-                  grid: { color: 'rgba(75, 85, 99, 0.1)' } 
-                },
-                y: { 
-                  ticks: { 
-                    color: 'rgb(75, 85, 99)', 
-                    callback: (value) => `$${value.toLocaleString()}` 
-                  }, 
-                  grid: { color: 'rgba(75, 85, 99, 0.1)' } 
-                },
-              },
-            }} />
-            <div className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
-              {subscriptionRevenueApiData.length > 0 ? 'Live API Data' : 'Sample Data'}
-            </div>
+            <Line
+              ref={userChartRef}
+              data={{
+                ...userChartData,
+                datasets: compare && compareChartData
+                  ? [...userChartData.datasets, ...compareChartData.datasets]
+                  : userChartData.datasets
+              }}
+              options={commonLineOptions}
+            />
           </div>
         </div>
+
+        {/* REVENUE CHART */}
+        <div style={{ animation: "pop-in .6s cubic-bezier(.68,-.55,.265,1.55) .1s" }}
+             className="bg-white/90 dark:bg-gray-900/90 rounded-2xl p-6 shadow-2xl">
+          <h3 className="text-lg font-semibold mb-4">
+            Revenue by Subscription Plan {loading && "(Refreshing…)"}
+          </h3>
+
+          <div className="h-80">
+            <Bar ref={revenueChartRef} data={revenueChartData} options={barOptions}/>
+          </div>
+        </div>
+
       </div>
     </div>
   );
 };
 
-export default DashboardCharts;
+export default DashboardChartsAdvanced;

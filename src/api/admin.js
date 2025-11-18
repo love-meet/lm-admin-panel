@@ -145,6 +145,50 @@ export const refundTransaction = async (transactionId) => {
   }
 };
 
+export const disableWithdrawals = async () => {
+  try {
+    const res = await api.post('/admin/transactions/disable-withdrawals');
+    console.log('[adminApi] disableWithdrawals response', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] disableWithdrawals error', err);
+    throw err;
+  }
+};
+
+export const enableWithdrawals = async () => {
+  try {
+    const res = await api.post('/admin/transactions/enable-withdrawals');
+    console.log('[adminApi] enableWithdrawals response', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] enableWithdrawals error', err);
+    throw err;
+  }
+};
+
+export const disableTips = async () => {
+  try {
+    const res = await api.post('/admin/transactions/disable-tips');
+    console.log('[adminApi] disableTips response', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] disableTips error', err);
+    throw err;
+  }
+};
+
+export const enableTips = async () => {
+  try {
+    const res = await api.post('/admin/transactions/enable-tips');
+    console.log('[adminApi] enableTips response', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] enableTips error', err);
+    throw err;
+  }
+};
+
 // Reports
 export const getReports = async (params = {}) => {
   try {
@@ -250,6 +294,28 @@ export const getDashboardPostsToday = async () => {
   }
 };
 
+export const getDashboardMaleUsers = async () => {
+  try {
+    const res = await api.get('/admin/dashboard/male-users');
+    console.log('[adminApi] getDashboardMaleUsers', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getDashboardMaleUsers error', err);
+    throw err;
+  }
+};
+
+export const getDashboardFemaleUsers = async () => {
+  try {
+    const res = await api.get('/admin/dashboard/female-users');
+    console.log('[adminApi] getDashboardFemaleUsers', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getDashboardFemaleUsers error', err);
+    throw err;
+  }
+};
+
 export const getDashboardNewSignups = async () => {
   try {
     const res = await api.get('/admin/dashboard/new-signups');
@@ -261,9 +327,20 @@ export const getDashboardNewSignups = async () => {
   }
 };
 
+export const getDashboardTotalRevenue = async () => {
+  try {
+    const res = await api.get('/admin/dashboard/total-revenue');
+    console.log('[adminApi] getDashboardTotalRevenue', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getDashboardTotalRevenue error', err);
+    throw err;
+  }
+};
+
 export const getDashboardUserGrowth = async (params = {}) => {
   try {
-    const res = await api.get('/admin/dashboard/user-growth', { params });
+    const res = await api.get('/admin/user-growth', { params });
     console.log('[adminApi] getDashboardUserGrowth', res);
     return res;
   } catch (err) {
@@ -499,6 +576,10 @@ const adminApi = {
   getTransactions,
   getTransactionById,
   refundTransaction,
+  disableWithdrawals,
+  enableWithdrawals,
+  disableTips,
+  enableTips,
   getReports,
   getAllPosts,
   getPostById,
@@ -508,6 +589,8 @@ const adminApi = {
   getStatsList,
   getDashboardTotalUsers,
   getDashboardPostsToday,
+  getDashboardMaleUsers,
+  getDashboardFemaleUsers,
   getDashboardNewSignups,
   getDashboardUserGrowth,
   getDashboardSummary,

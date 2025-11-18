@@ -18,9 +18,12 @@ const useTransactionsData = () => {
       let list = res?.data ?? res?.data?.data ?? res ?? [];
       if (!Array.isArray(list)) list = [];
 
-      const mapped = list.map((t) => ({
+      // First pass: map basic data
+      let mapped = list.map((t) => ({
         id: t._id || t.id || t.transactionId || '',
-        user: t.user || t.username || t.email || '',
+        userId: t.userId || t.user_id || null,
+        user: t.user || null,
+        username: t.username || '',
         amount: Number(t.transactionAmount ?? t.balance ?? t.amount ?? 0),
         type: t.type || '',
         status: t.status || '',
@@ -28,7 +31,41 @@ const useTransactionsData = () => {
         details: t.name || t.details || '',
       }));
 
-      setTransactions(mapped);
+      // Second pass: fetch user names for transactions with userId
+      const transactionsWithUsers = await Promise.all(
+        mapped.map(async (t) => {
+          let userName = 'Unknown User';
+          let userUsername = '';
+
+          if (t.user) {
+            if (typeof t.user === 'object') {
+              userName = t.user.name || t.user.username || t.user.email || 'Unknown User';
+              userUsername = t.user.username || t.user.email || '';
+            } else {
+              userName = t.user;
+              userUsername = t.username || '';
+            }
+          } else if (t.userId) {
+            try {
+              const userRes = await adminApi.getUserById(t.userId);
+              const userData = userRes;
+              userName = userData.username || userData.name || userData.email || `User ${t.userId}`;
+              userUsername = userData.username || userData.email || '';
+            } catch (err) {
+              console.error(`Failed to fetch user ${t.userId}:`, err);
+              userName = `User ${t.userId}`;
+            }
+          }
+
+          return {
+            ...t,
+            user: userName,
+            username: userUsername,
+          };
+        })
+      );
+
+      setTransactions(transactionsWithUsers);
       setTotalPages(res?.pagination?.totalPages || Math.ceil(list.length / itemsPerPage) || 1);
     } catch (e) {
       console.error('Failed to fetch transactions:', e);

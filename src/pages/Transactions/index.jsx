@@ -2,6 +2,8 @@ import React from 'react';
 import TransactionsFilters from './TransactionsFilters';
 import TransactionsTable from './TransactionsTable';
 import TransactionsPagination from './TransactionsPagination';
+import TransactionModal from './TransactionModal'; // Add this import
+import TransactionSettings from './TransactionSettings';
 import useTransactionsData from './useTransactionsData';
 
 const Transactions = () => {
@@ -23,6 +25,8 @@ const Transactions = () => {
   return (
     <div className="p-4 md:p-6 bg-gradient-to-br from-gray-800 to-purple-300 min-h-screen">
       <div className="max-w-[1600px] mx-auto">
+        <TransactionSettings />
+        <div className="mt-6"></div>
         <TransactionsFilters
           search={search}
           setSearch={setSearch}
@@ -41,6 +45,14 @@ const Transactions = () => {
           totalPages={totalPages}
         />
       </div>
+
+      {/* Add the TransactionModal here */}
+      <TransactionModal
+        selectedTransaction={selected}
+        setSelectedTransaction={setSelected}
+        formatCurrency={formatCurrency}
+        formatDate={formatDate}
+      />
     </div>
   );
 };
