@@ -213,6 +213,17 @@ export const getAllPosts = async (params = {}) => {
   }
 };
 
+export const getPostsWithDetails = async (params = {}) => {
+  try {
+    const res = await api.get('/admin/posts-with-details', { params });
+    console.log('[adminApi] getPostsWithDetails response', res);
+    return res;
+  } catch (err) {
+    console.error('[adminApi] getPostsWithDetails error', err);
+    throw err;
+  }
+};
+
 export const getPostById = async (postId) => {
   try {
     const res = await api.get(`/admin/get-posts/${postId}`);
@@ -296,9 +307,43 @@ export const getDashboardPostsToday = async () => {
 
 export const getDashboardMaleUsers = async () => {
   try {
-    const res = await api.get('/admin/dashboard/male-users');
-    console.log('[adminApi] getDashboardMaleUsers', res);
-    return res;
+    let allMaleUsers = [];
+    let currentPage = 1;
+    let totalPages = 1;
+
+    // Fetch all pages
+    do {
+      const response = await getAllUsers({ page: currentPage, limit: 100 });
+
+      // CORRECTION: The users array is in response.data directly, not response.data.data
+      const users = response.data || [];
+
+      console.log(`Page ${currentPage} users:`, users); // Debug log
+      console.log('First user gender:', users[0]?.gender); // Check actual gender value
+
+      // Filter male users from current page
+      const maleUsersFromPage = users.filter(user => {
+        console.log(`User ${user.username} gender:`, user.gender);
+        return user.gender === "Man";
+      });
+
+      allMaleUsers = [...allMaleUsers, ...maleUsersFromPage];
+
+      // Update pagination info - check if it exists in response.data.pagination or elsewhere
+      totalPages = response.pagination?.totalPages || response.data?.pagination?.totalPages || 1;
+      console.log(`Total pages: ${totalPages}, Current page: ${currentPage}`);
+
+      currentPage++;
+
+    } while (currentPage <= totalPages);
+
+    console.log('Final male users count:', allMaleUsers.length);
+    console.log('Final male users:', allMaleUsers);
+
+    return {
+      data: allMaleUsers,
+      count: allMaleUsers.length
+    };
   } catch (err) {
     console.error('[adminApi] getDashboardMaleUsers error', err);
     throw err;
@@ -307,9 +352,43 @@ export const getDashboardMaleUsers = async () => {
 
 export const getDashboardFemaleUsers = async () => {
   try {
-    const res = await api.get('/admin/dashboard/female-users');
-    console.log('[adminApi] getDashboardFemaleUsers', res);
-    return res;
+    let allFemaleUsers = [];
+    let currentPage = 1;
+    let totalPages = 1;
+
+    // Fetch all pages
+    do {
+      const response = await getAllUsers({ page: currentPage, limit: 100 });
+
+      // CORRECTION: The users array is in response.data directly
+      const users = response.data || [];
+
+      console.log(`Page ${currentPage} users:`, users);
+      console.log('First user gender:', users[0]?.gender);
+
+      // Filter female users from current page
+      const femaleUsersFromPage = users.filter(user => {
+        console.log(`User ${user.username} gender:`, user.gender);
+        return user.gender === "Woman";
+      });
+
+      allFemaleUsers = [...allFemaleUsers, ...femaleUsersFromPage];
+
+      // Update pagination info
+      totalPages = response.pagination?.totalPages || response.data?.pagination?.totalPages || 1;
+      console.log(`Total pages: ${totalPages}, Current page: ${currentPage}`);
+
+      currentPage++;
+
+    } while (currentPage <= totalPages);
+
+    console.log('Final female users count:', allFemaleUsers.length);
+    console.log('Final female users:', allFemaleUsers);
+
+    return {
+      data: allFemaleUsers,
+      count: allFemaleUsers.length
+    };
   } catch (err) {
     console.error('[adminApi] getDashboardFemaleUsers error', err);
     throw err;
@@ -582,6 +661,7 @@ const adminApi = {
   enableTips,
   getReports,
   getAllPosts,
+  getPostsWithDetails,
   getPostById,
   moderatePost,
   deletePost,

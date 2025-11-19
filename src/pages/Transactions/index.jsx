@@ -8,6 +8,7 @@ import useTransactionsData from './useTransactionsData';
 
 const Transactions = () => {
   const {
+    loading,
     search,
     setSearch,
     selected,
@@ -27,23 +28,35 @@ const Transactions = () => {
       <div className="max-w-[1600px] mx-auto">
         <TransactionSettings />
         <div className="mt-6"></div>
-        <TransactionsFilters
-          search={search}
-          setSearch={setSearch}
-          typeFilter={typeFilter}
-          setTypeFilter={setTypeFilter}
-        />
-        <TransactionsTable
-          filtered={filtered}
-          setSelected={setSelected}
-          formatCurrency={formatCurrency}
-          formatDate={formatDate}
-        />
-        <TransactionsPagination
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          totalPages={totalPages}
-        />
+
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-[var(--color-text-secondary)]">Loading transactions...</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <TransactionsFilters
+              search={search}
+              setSearch={setSearch}
+              typeFilter={typeFilter}
+              setTypeFilter={setTypeFilter}
+            />
+            <TransactionsTable
+              filtered={filtered}
+              setSelected={setSelected}
+              formatCurrency={formatCurrency}
+              formatDate={formatDate}
+            />
+            <TransactionsPagination
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              totalPages={totalPages}
+            />
+          </>
+        )}
       </div>
 
       {/* Add the TransactionModal here */}

@@ -71,8 +71,8 @@ const usePostsData = () => {
         // object -> try common fields
         return candidate.username || candidate.name || candidate.userId || candidate.id || 'unknown';
       })(),
-      likes: Number(t.likes ?? t.likeCount ?? t.reactions ?? 0) || 0,
-      comments: Number(t.comments ?? t.commentCount ?? 0) || 0,
+      likes: Array.isArray(t.likedBy) ? t.likedBy.length : Number(t.likes ?? t.likeCount ?? t.reactions ?? 0) || 0,
+      comments: Array.isArray(t.comments) ? t.comments.length : Number(t.comments ?? t.commentCount ?? 0) || 0,
       date: t.createdAt || t.date || t.timestamp || new Date().toISOString(),
       media: normalizeMedia(t.media ?? t.image ?? t.images ?? t.thumbnail ?? ''),
       reported: Boolean(t.reported || t.isReported || (t.reports && t.reports.length)),
@@ -84,8 +84,8 @@ const usePostsData = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await adminApi.getAllPosts();
-        console.log('[posts] getAllPosts raw', res);
+        const res = await adminApi.getPostsWithDetails();
+        console.log('[posts] getPostsWithDetails raw', res);
         let list = [];
         if (Array.isArray(res)) list = res;
         else if (Array.isArray(res?.data)) list = res.data;
@@ -164,13 +164,18 @@ const usePostsData = () => {
   const handleView = async (post) => {
     setActionLoading(true);
     try {
-      // fetch full post details
-      const res = await adminApi.getPostById(post.id);
-      console.log('[posts] getPostById raw', res);
-      let detail = res;
-      if (res?.data) detail = res.data;
-      if (res?.data?.data) detail = res.data.data;
-      setSelectedPost(mapPost(detail || post));
+      // If the post already has detailed likes and comments, use it directly
+      if (post.raw && Array.isArray(post.raw.likedBy) && Array.isArray(post.raw.comments)) {
+        setSelectedPost(post);
+      } else {
+        // fetch full post details
+        const res = await adminApi.getPostById(post.id);
+        console.log('[posts] getPostById raw', res);
+        let detail = res;
+        if (res?.data) detail = res.data;
+        if (res?.data?.data) detail = res.data.data;
+        setSelectedPost(mapPost(detail || post));
+      }
     } catch (err) {
       console.error('[posts] view error', err);
       toast.error('Failed to load post');
@@ -204,7 +209,7 @@ const usePostsData = () => {
       await adminApi.moderatePost(id, { action });
       toast.success('Post moderation updated');
       // refresh list
-      const res = await adminApi.getAllPosts();
+      const res = await adminApi.getPostsWithDetails();
       let list = [];
       if (Array.isArray(res)) list = res;
       else if (Array.isArray(res?.data)) list = res.data;

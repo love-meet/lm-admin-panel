@@ -23,7 +23,7 @@ const UsersFilters = ({
     "focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer appearance-none bg-no-repeat bg-right pr-8";
 
   return (
-    <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-transparent hover:border-white/10">
+    <div className="relative bg-gray-900/95 rounded-lg p-4 border border-transparent">
       <div className="flex flex-wrap gap-3 items-center justify-between">
         {/* Search Input */}
         <input
@@ -67,17 +67,19 @@ const UsersFilters = ({
           <option value="Cosmos" className="bg-gray-800 text-gray-200">Cosmos</option>
         </select>
 
-        {/* Verified Filter Dropdown */}
+        {/* Status Filter Dropdown */}
         <select
           value={verifiedFilter}
           onChange={(e) => setVerifiedFilter(e.target.value)}
-          aria-label="Filter by verification status"
+          aria-label="Filter by status"
           className={baseSelectClass}
           style={selectStyles}
         >
           <option value="all" className="bg-gray-800 text-gray-200">All Users</option>
           <option value="verified" className="bg-gray-800 text-gray-200">Verified</option>
           <option value="unverified" className="bg-gray-800 text-gray-200">Unverified</option>
+          <option value="male" className="bg-gray-800 text-gray-200">Male</option>
+          <option value="female" className="bg-gray-800 text-gray-200">Female</option>
         </select>
       </div>
     </div>

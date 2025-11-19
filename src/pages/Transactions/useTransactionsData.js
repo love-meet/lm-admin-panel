@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 const useTransactionsData = () => {
   const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -12,6 +13,7 @@ const useTransactionsData = () => {
   const itemsPerPage = 10;
 
   const loadTransactions = async (page = 1) => {
+    setLoading(true);
     try {
       const res = await adminApi.getTransactions({ page, perPage: itemsPerPage });
 
@@ -72,6 +74,8 @@ const useTransactionsData = () => {
       toast.error('Failed to fetch transactions');
       setTransactions([]);
       setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,6 +103,7 @@ const useTransactionsData = () => {
 
   return {
     transactions,
+    loading,
     search,
     setSearch,
     selected,

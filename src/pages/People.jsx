@@ -1,13 +1,13 @@
 import React from 'react';
-import Modal from '../../components/Modal';
-import UserModal from '../../components/UserModal';
-import { useAuth } from '../../context/AuthContext';
-import UsersFilters from './UsersFilters';
-import UsersTable from './UsersTable';
-import UsersPagination from './UsersPagination';
-import useUsersData from './useUsersData';
+import Modal from '../components/Modal';
+import UserModal from '../components/UserModal';
+import { useAuth } from '../context/AuthContext';
+import UsersFilters from '../pages/Users/UsersFilters';
+import UsersTable from '../pages/Users/UsersTable';
+import UsersPagination from '../pages/Users/UsersPagination';
+import useUsersData from '../pages/Users/useUsersData';
 
-export default function Users() {
+export default function People() {
   const { hasPermission } = useAuth();
   const {
     loading,
@@ -41,13 +41,13 @@ export default function Users() {
 
   return (
     <div className="p-4 md:p-6 bg-gradient-to-br from-gray-800 to-purple-300 min-h-screen">
-      <h2 className="text-3xl font-bold mb-6 text-[var(--color-text-primary)]">User Management</h2>
-      <div className="bg-[var(--color-bg-tertiary)] rounded-lg shadow-md overflow-visible">
+      <h2 className="text-3xl font-bold mb-6 text-[var(--color-text-primary)]">People Management</h2>
+      <div className="bg-[var(--color-bg-secondary)] rounded-lg shadow-md overflow-visible">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-[var(--color-text-secondary)]">Loading users...</p>
+              <p className="text-[var(--color-text-secondary)]">Loading people...</p>
             </div>
           </div>
         ) : (

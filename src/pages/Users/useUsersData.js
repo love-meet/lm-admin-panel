@@ -51,6 +51,7 @@ const useUsersData = () => {
       balance: typeof u.balance !== 'undefined' ? u.balance : (u.rawBalance || 0),
       isDisabled: u.isDisabled || false,
       verified: !!verifiedFlag,
+      gender: u.gender || '',
       dateJoined: u.dateJoined ? new Date(u.dateJoined).toLocaleDateString() : (u.dateJoinedString || ''),
       rawDateJoined: u.dateJoined ? new Date(u.dateJoined) : null,
       raw: u,
@@ -338,6 +339,10 @@ const useUsersData = () => {
       filtered = filtered.filter((u) => u.verified);
     } else if (verifiedFilter === 'unverified') {
       filtered = filtered.filter((u) => !u.verified);
+    } else if (verifiedFilter === 'male') {
+      filtered = filtered.filter((u) => u.gender === 'Man');
+    } else if (verifiedFilter === 'female') {
+      filtered = filtered.filter((u) => u.gender === 'Woman');
     }
     if (sortBy === 'newest') {
       filtered = [...filtered].sort((a, b) => (b.rawDateJoined || 0) - (a.rawDateJoined || 0));

@@ -195,16 +195,16 @@ const PostModal = ({ selectedPost, setSelectedPost, setQuery, handleDelete, form
 
             {activeTab === 'likes' && (
               <div className="space-y-3">
-                {selectedPost.raw?.likes && Array.isArray(selectedPost.raw.likes) && selectedPost.raw.likes.length > 0 ? (
-                  selectedPost.raw.likes.map((like, idx) => {
-                    const user = typeof like === 'object' ? like.user || like : like;
-                    const username = typeof user === 'object' ? user.username || user.name || user.id : user;
+                {selectedPost.raw?.likedBy && Array.isArray(selectedPost.raw.likedBy) && selectedPost.raw.likedBy.length > 0 ? (
+                  selectedPost.raw.likedBy.map((like, idx) => {
+                    const user = like.user || like;
+                    const username = user.username || user.name || user.id || 'Unknown User';
                     return (
                       <div key={idx} className="flex items-center gap-3 p-4 bg-gray-800/30 backdrop-blur-xl rounded-xl border border-gray-700/50 hover:border-violet-500/50 transition-all">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                          {username ? username.charAt(0).toUpperCase() : '?'}
+                          {username.charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-white font-medium">{username || 'Unknown User'}</span>
+                        <span className="text-white font-medium">{username}</span>
                       </div>
                     );
                   })
