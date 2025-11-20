@@ -195,8 +195,8 @@ const PostModal = ({ selectedPost, setSelectedPost, setQuery, handleDelete, form
 
             {activeTab === 'likes' && (
               <div className="space-y-3">
-                {selectedPost.raw?.likes && Array.isArray(selectedPost.raw.likes) && selectedPost.raw.likes.length > 0 ? (
-                  selectedPost.raw.likes.map((like, idx) => {
+                {selectedPost.raw?.likedBy && Array.isArray(selectedPost.raw.likedBy) && selectedPost.raw.likedBy.length > 0 ? (
+                  selectedPost.raw.likedBy.map((like, idx) => {
                     const user = typeof like === 'object' ? like.user || like : like;
                     const username = typeof user === 'object' ? user.username || user.name || user.id : user;
                     return (

@@ -42,49 +42,45 @@ export default function Users() {
   return (
     <div className="p-4 md:p-6 bg-gradient-to-br from-gray-800 to-purple-300 min-h-screen">
       <h2 className="text-3xl font-bold mb-6 text-[var(--color-text-primary)]">User Management</h2>
-      <div className="bg-[var(--color-bg-tertiary)] rounded-lg shadow-md overflow-visible">
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-[var(--color-text-secondary)]">Loading users...</p>
-            </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-16 bg-transparent">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-[var(--color-text-secondary)]">Loading users...</p>
           </div>
-        ) : (
-          <>
-            <UsersFilters
-              query={query}
-              setQuery={setQuery}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              planFilter={planFilter}
-              setPlanFilter={setPlanFilter}
-              verifiedFilter={verifiedFilter}
-              setVerifiedFilter={setVerifiedFilter}
-            />
-            <UsersTable
-              paginatedUsers={paginatedUsers}
-              openMenuId={openMenuId}
-              setOpenMenuId={setOpenMenuId}
-              handleView={handleView}
-              setConfirm={setConfirm}
-              verifyUser={verifyUser}
-              unverifyUserHandler={unverifyUserHandler}
-              enableUser={enableUser}
-              actionLoading={actionLoading}
-              hasPermission={hasPermission}
-              truncateMiddle={truncateMiddle}
-              truncateRight={truncateRight}
-              copyId={copyId}
-            />
-            <UsersPagination
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              totalPages={totalPages}
-            />
-          </>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <UsersFilters
+            query={query}
+            setQuery={setQuery}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            planFilter={planFilter}
+            setPlanFilter={setPlanFilter}
+            verifiedFilter={verifiedFilter}
+            setVerifiedFilter={setVerifiedFilter}
+          />
+          <UsersTable
+            paginatedUsers={paginatedUsers}
+            openMenuId={openMenuId}
+            setOpenMenuId={setOpenMenuId}
+            handleView={handleView}
+            setConfirm={setConfirm}
+            verifyUser={verifyUser}
+            unverifyUserHandler={unverifyUserHandler}
+            enableUser={enableUser}
+            actionLoading={actionLoading}
+            hasPermission={hasPermission}
+            truncateMiddle={truncateMiddle}
+            truncateRight={truncateRight}
+            copyId={copyId}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            totalPages={totalPages}
+          />
+        </>
+      )}
       {/* User modal is now a separate component which reads ?user=<id> from the URL */}
       <UserModal />
 

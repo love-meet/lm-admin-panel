@@ -4,7 +4,7 @@ const UsersPagination = ({ currentPage, setCurrentPage, totalPages }) => {
   if (totalPages <= 1) return null;
 
   return (
-    <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-b-2xl p-4 border-t border-transparent hover:border-white/10 flex justify-between items-center">
+    <div className="relative bg-gray-900/95 backdrop-blur-xl rounded-b-2xl p-4 border-t border-gray-700/50 flex justify-between items-center">
       <button
         disabled={currentPage <= 1}
         onClick={() => setCurrentPage((p) => Math.max(Number(p) - 1, 1))}

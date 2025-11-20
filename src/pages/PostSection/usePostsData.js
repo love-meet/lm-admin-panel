@@ -170,7 +170,13 @@ const usePostsData = () => {
       let detail = res;
       if (res?.data) detail = res.data;
       if (res?.data?.data) detail = res.data.data;
-      setSelectedPost(mapPost(detail || post));
+      let mappedDetail = mapPost(detail || post);
+      // Preserve likes and comments counts from the list if detail doesn't have them
+      if (!mappedDetail.likes && post.likes) mappedDetail.likes = post.likes;
+      if (!mappedDetail.comments && post.comments) mappedDetail.comments = post.comments;
+      // Merge raw data to preserve likedBy and comments arrays from list if detail doesn't have them
+      mappedDetail.raw = { ...post.raw, ...detail };
+      setSelectedPost(mappedDetail);
     } catch (err) {
       console.error('[posts] view error', err);
       toast.error('Failed to load post');

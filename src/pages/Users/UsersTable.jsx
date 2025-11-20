@@ -14,7 +14,10 @@ const UsersTable = ({
   hasPermission,
   truncateMiddle,
   truncateRight,
-  copyId
+  copyId,
+  currentPage,
+  setCurrentPage,
+  totalPages
 }) => {
   React.useEffect(() => {
     // Inject pop-in keyframes if not already present
@@ -28,7 +31,7 @@ const UsersTable = ({
 
   return (
     <div className="relative overflow-visible">
-      <div className="relative bg-gray-900/95 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-gray-700/50 overflow-visible">
+      <div className="relative bg-gray-900/95 backdrop-blur-xl rounded-t-2xl p-4 shadow-2xl border border-gray-700/50 overflow-visible">
         <table className="min-w-full divide-y divide-gray-700/50">
           <thead className="bg-gradient-to-r from-gray-800/80 to-gray-800/60">
             <tr>
@@ -193,6 +196,31 @@ const UsersTable = ({
             ))}
           </tbody>
         </table>
+        {totalPages > 1 && (
+          <div className="relative bg-gray-900/95 backdrop-blur-xl rounded-b-2xl p-4 border-t border-gray-700/50 flex justify-between items-center">
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(Number(p) - 1, 1))}
+              className="px-3 py-1 rounded-md bg-[var(--color-bg-tertiary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/5"
+              aria-label="Previous page"
+            >
+              Previous
+            </button>
+
+            <span className="text-sm text-[var(--color-text-primary)]">
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(Number(p) + 1, totalPages))}
+              className="px-3 py-1 rounded-md bg-[var(--color-bg-tertiary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/5"
+              aria-label="Next page"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
